@@ -20,7 +20,10 @@
 #include "kernel/concat.h"
 
 #include <ext/standard/php_string.h>
+
 #include "kernel/main.h"
+#include "kernel/operators.h"
+#include "kernel/string.h"
 
 void phalcon_concat_sv(zval **result, const char *op1, zend_uint op1_len, zval *op2, int self_var TSRMLS_DC){
 
@@ -47,7 +50,7 @@ void phalcon_concat_sv(zval **result, const char *op1, zend_uint op1_len, zval *
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -60,11 +63,11 @@ void phalcon_concat_sv(zval **result, const char *op1, zend_uint op1_len, zval *
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -94,7 +97,7 @@ void phalcon_concat_svs(zval **result, const char *op1, zend_uint op1_len, zval 
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -108,11 +111,11 @@ void phalcon_concat_svs(zval **result, const char *op1, zend_uint op1_len, zval 
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -149,7 +152,7 @@ void phalcon_concat_svsv(zval **result, const char *op1, zend_uint op1_len, zval
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -164,15 +167,15 @@ void phalcon_concat_svsv(zval **result, const char *op1, zend_uint op1_len, zval
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -209,7 +212,7 @@ void phalcon_concat_svsvs(zval **result, const char *op1, zend_uint op1_len, zva
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -225,15 +228,15 @@ void phalcon_concat_svsvs(zval **result, const char *op1, zend_uint op1_len, zva
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -277,7 +280,7 @@ void phalcon_concat_svsvsv(zval **result, const char *op1, zend_uint op1_len, zv
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -294,19 +297,19 @@ void phalcon_concat_svsvsv(zval **result, const char *op1, zend_uint op1_len, zv
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy6) {
-		zval_dtor(op6);
+		phalcon_dtor(op6);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -350,7 +353,7 @@ void phalcon_concat_svsvsvs(zval **result, const char *op1, zend_uint op1_len, z
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -368,19 +371,19 @@ void phalcon_concat_svsvsvs(zval **result, const char *op1, zend_uint op1_len, z
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy6) {
-		zval_dtor(op6);
+		phalcon_dtor(op6);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -431,7 +434,7 @@ void phalcon_concat_svsvsvsvs(zval **result, const char *op1, zend_uint op1_len,
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -452,23 +455,23 @@ void phalcon_concat_svsvsvsvs(zval **result, const char *op1, zend_uint op1_len,
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy6) {
-		zval_dtor(op6);
+		phalcon_dtor(op6);
 	}
 
 	if (use_copy8) {
-		zval_dtor(op8);
+		phalcon_dtor(op8);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -512,7 +515,7 @@ void phalcon_concat_svsvv(zval **result, const char *op1, zend_uint op1_len, zva
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -528,19 +531,19 @@ void phalcon_concat_svsvv(zval **result, const char *op1, zend_uint op1_len, zva
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -577,7 +580,7 @@ void phalcon_concat_svv(zval **result, const char *op1, zend_uint op1_len, zval 
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -591,15 +594,15 @@ void phalcon_concat_svv(zval **result, const char *op1, zend_uint op1_len, zval 
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -636,7 +639,7 @@ void phalcon_concat_svvs(zval **result, const char *op1, zend_uint op1_len, zval
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -651,15 +654,15 @@ void phalcon_concat_svvs(zval **result, const char *op1, zend_uint op1_len, zval
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -689,7 +692,7 @@ void phalcon_concat_vs(zval **result, zval *op1, const char *op2, zend_uint op2_
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -702,11 +705,11 @@ void phalcon_concat_vs(zval **result, zval *op1, const char *op2, zend_uint op2_
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -743,7 +746,7 @@ void phalcon_concat_vsv(zval **result, zval *op1, const char *op2, zend_uint op2
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -757,15 +760,15 @@ void phalcon_concat_vsv(zval **result, zval *op1, const char *op2, zend_uint op2
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -802,7 +805,7 @@ void phalcon_concat_vsvs(zval **result, zval *op1, const char *op2, zend_uint op
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -817,15 +820,15 @@ void phalcon_concat_vsvs(zval **result, zval *op1, const char *op2, zend_uint op
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -869,7 +872,7 @@ void phalcon_concat_vsvsv(zval **result, zval *op1, const char *op2, zend_uint o
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -885,19 +888,19 @@ void phalcon_concat_vsvsv(zval **result, zval *op1, const char *op2, zend_uint o
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -941,7 +944,7 @@ void phalcon_concat_vsvsvs(zval **result, zval *op1, const char *op2, zend_uint 
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -958,19 +961,19 @@ void phalcon_concat_vsvsvs(zval **result, zval *op1, const char *op2, zend_uint 
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1021,7 +1024,7 @@ void phalcon_concat_vsvsvsv(zval **result, zval *op1, const char *op2, zend_uint
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1039,23 +1042,23 @@ void phalcon_concat_vsvsvsv(zval **result, zval *op1, const char *op2, zend_uint
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy7) {
-		zval_dtor(op7);
+		phalcon_dtor(op7);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1099,7 +1102,7 @@ void phalcon_concat_vsvv(zval **result, zval *op1, const char *op2, zend_uint op
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1114,19 +1117,19 @@ void phalcon_concat_vsvv(zval **result, zval *op1, const char *op2, zend_uint op
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1177,7 +1180,7 @@ void phalcon_concat_vsvvv(zval **result, zval *op1, const char *op2, zend_uint o
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1193,23 +1196,23 @@ void phalcon_concat_vsvvv(zval **result, zval *op1, const char *op2, zend_uint o
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1246,7 +1249,7 @@ void phalcon_concat_vv(zval **result, zval *op1, zval *op2, int self_var TSRMLS_
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1259,15 +1262,15 @@ void phalcon_concat_vv(zval **result, zval *op1, zval *op2, int self_var TSRMLS_
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1304,7 +1307,7 @@ void phalcon_concat_vvs(zval **result, zval *op1, zval *op2, const char *op3, ze
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1318,15 +1321,15 @@ void phalcon_concat_vvs(zval **result, zval *op1, zval *op2, const char *op3, ze
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1370,7 +1373,7 @@ void phalcon_concat_vvsv(zval **result, zval *op1, zval *op2, const char *op3, z
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1385,19 +1388,19 @@ void phalcon_concat_vvsv(zval **result, zval *op1, zval *op2, const char *op3, z
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1441,7 +1444,7 @@ void phalcon_concat_vvv(zval **result, zval *op1, zval *op2, zval *op3, int self
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1455,19 +1458,19 @@ void phalcon_concat_vvv(zval **result, zval *op1, zval *op2, zval *op3, int self
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1518,7 +1521,7 @@ void phalcon_concat_vvvsv(zval **result, zval *op1, zval *op2, zval *op3, const 
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1534,23 +1537,23 @@ void phalcon_concat_vvvsv(zval **result, zval *op1, zval *op2, zval *op3, const 
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1601,7 +1604,7 @@ void phalcon_concat_vvvv(zval **result, zval *op1, zval *op2, zval *op3, zval *o
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1616,23 +1619,23 @@ void phalcon_concat_vvvv(zval **result, zval *op1, zval *op2, zval *op3, zval *o
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1697,7 +1700,7 @@ void phalcon_concat_vvvvsvv(zval **result, zval *op1, zval *op2, zval *op3, zval
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1715,31 +1718,31 @@ void phalcon_concat_vvvvsvv(zval **result, zval *op1, zval *op2, zval *op3, zval
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy6) {
-		zval_dtor(op6);
+		phalcon_dtor(op6);
 	}
 
 	if (use_copy7) {
-		zval_dtor(op7);
+		phalcon_dtor(op7);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
@@ -1797,7 +1800,7 @@ void phalcon_concat_vvvvv(zval **result, zval *op1, zval *op2, zval *op3, zval *
 
 		offset = Z_STRLEN_PP(result);
 		length += offset;
-		Z_STRVAL_PP(result) = (char *) erealloc(Z_STRVAL_PP(result), length + 1);
+		Z_STRVAL_PP(result) = (char *) str_erealloc(Z_STRVAL_PP(result), length + 1);
 
 	} else {
 		Z_STRVAL_PP(result) = (char *) emalloc(length + 1);
@@ -1813,28 +1816,212 @@ void phalcon_concat_vvvvv(zval **result, zval *op1, zval *op2, zval *op3, zval *
 	Z_STRLEN_PP(result) = length;
 
 	if (use_copy1) {
-		zval_dtor(op1);
+		phalcon_dtor(op1);
 	}
 
 	if (use_copy2) {
-		zval_dtor(op2);
+		phalcon_dtor(op2);
 	}
 
 	if (use_copy3) {
-		zval_dtor(op3);
+		phalcon_dtor(op3);
 	}
 
 	if (use_copy4) {
-		zval_dtor(op4);
+		phalcon_dtor(op4);
 	}
 
 	if (use_copy5) {
-		zval_dtor(op5);
+		phalcon_dtor(op5);
 	}
 
 	if (use_copy) {
-		zval_dtor(&result_copy);
+		phalcon_dtor(&result_copy);
 	}
 
 }
 
+/**
+ * Appends the content of the right operator to the left operator
+ */
+void phalcon_concat_self(zval **left, zval *right TSRMLS_DC){
+
+	zval left_copy, right_copy;
+	uint length;
+	int use_copy_left = 0, use_copy_right = 0;
+
+	if (Z_TYPE_P(right) != IS_STRING) {
+		phalcon_make_printable_zval(right, &right_copy, &use_copy_right);
+		if (use_copy_right) {
+			right = &right_copy;
+		}
+	}
+
+	if (Z_TYPE_PP(left) == IS_NULL) {
+
+		Z_STRVAL_PP(left) = emalloc(Z_STRLEN_P(right) + 1);
+		memcpy(Z_STRVAL_PP(left), Z_STRVAL_P(right), Z_STRLEN_P(right));
+		Z_STRVAL_PP(left)[Z_STRLEN_P(right)] = 0;
+		Z_STRLEN_PP(left) = Z_STRLEN_P(right);
+		Z_TYPE_PP(left) = IS_STRING;
+
+		if (use_copy_right) {
+			phalcon_dtor(&right_copy);
+		}
+
+		return;
+	}
+
+	if (Z_TYPE_PP(left) != IS_STRING) {
+		phalcon_make_printable_zval(*left, &left_copy, &use_copy_left);
+		if (use_copy_left) {
+			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
+		}
+	}
+
+	SEPARATE_ZVAL_IF_NOT_REF(left);
+
+	length = Z_STRLEN_PP(left) + Z_STRLEN_P(right);
+	Z_STRVAL_PP(left) = str_erealloc(Z_STRVAL_PP(left), length + 1);
+
+	memcpy(Z_STRVAL_PP(left) + Z_STRLEN_PP(left), Z_STRVAL_P(right), Z_STRLEN_P(right));
+	Z_STRVAL_PP(left)[length] = 0;
+	Z_STRLEN_PP(left) = length;
+	Z_TYPE_PP(left) = IS_STRING;
+
+	if (use_copy_left) {
+		phalcon_dtor(&left_copy);
+	}
+
+	if (use_copy_right) {
+		phalcon_dtor(&right_copy);
+	}
+}
+
+/**
+ * Appends the content of the right operator to the left operator
+ */
+void phalcon_concat_self_str(zval **left, const char *right, int right_length TSRMLS_DC){
+
+	zval left_copy;
+	uint length;
+	int use_copy = 0;
+
+	if (Z_TYPE_PP(left) == IS_NULL) {
+
+		Z_STRVAL_PP(left) = emalloc(right_length + 1);
+		memcpy(Z_STRVAL_PP(left), right, right_length);
+		Z_STRVAL_PP(left)[right_length] = 0;
+		Z_STRLEN_PP(left) = right_length;
+		Z_TYPE_PP(left) = IS_STRING;
+
+		return;
+	}
+
+	if (Z_TYPE_PP(left) != IS_STRING) {
+		phalcon_make_printable_zval(*left, &left_copy, &use_copy);
+		if (use_copy) {
+			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
+		}
+	}
+
+	SEPARATE_ZVAL_IF_NOT_REF(left);
+
+	length = Z_STRLEN_PP(left) + right_length;
+	Z_STRVAL_PP(left) = str_erealloc(Z_STRVAL_PP(left), length + 1);
+
+	memcpy(Z_STRVAL_PP(left) + Z_STRLEN_PP(left), right, right_length);
+	Z_STRVAL_PP(left)[length] = 0;
+	Z_STRLEN_PP(left) = length;
+	Z_TYPE_PP(left) = IS_STRING;
+
+	if (use_copy) {
+		phalcon_dtor(&left_copy);
+	}
+}
+
+/**
+* Appends the content of the right operator to the left operator
+ */
+void phalcon_concat_self_long(zval **left, const long right TSRMLS_DC) {
+
+	zval left_copy;
+	uint length;
+	char *right_char;
+	int use_copy = 0, right_length = 0;
+
+	right_length = phalcon_spprintf(&right_char, 0, "%ld", right);
+
+	if (Z_TYPE_PP(left) == IS_NULL) {
+		Z_STRVAL_PP(left) = emalloc(right_length + 1);
+		if (right_length > 0) {
+			memcpy(Z_STRVAL_PP(left), right_char, right_length);
+		} else {
+			memcpy(Z_STRVAL_PP(left), "", 0);
+		}
+		Z_STRVAL_PP(left)[right_length] = 0;
+		Z_STRLEN_PP(left) = right_length;
+		Z_TYPE_PP(left) = IS_STRING;
+		return;
+	}
+
+	if (Z_TYPE_PP(left) != IS_STRING) {
+		phalcon_make_printable_zval(*left, &left_copy, &use_copy);
+		if (use_copy) {
+			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
+		}
+	}
+
+	if (right_length > 0) {
+
+		SEPARATE_ZVAL_IF_NOT_REF(left);
+
+		length = Z_STRLEN_PP(left) + right_length;
+		Z_STRVAL_PP(left) = str_erealloc(Z_STRVAL_PP(left), length + 1);
+		memcpy(Z_STRVAL_PP(left) + Z_STRLEN_PP(left), right_char, right_length);
+		Z_STRVAL_PP(left)[length] = 0;
+		Z_STRLEN_PP(left) = length;
+		Z_TYPE_PP(left) = IS_STRING;
+	}
+
+	if (use_copy) {
+		phalcon_dtor(&left_copy);
+	}
+}
+
+/**
+ * Appends the content of the right operator to the left operator
+ */
+void phalcon_concat_self_char(zval **left, unsigned char right TSRMLS_DC) {
+
+	zval left_copy;
+	int use_copy = 0;
+
+	if (Z_TYPE_PP(left) == IS_NULL) {
+		Z_STRVAL_PP(left) = emalloc(2);
+		Z_STRVAL_PP(left)[0] = right;
+		Z_STRVAL_PP(left)[1] = 0;
+		Z_STRLEN_PP(left) = 1;
+		Z_TYPE_PP(left) = IS_STRING;
+		return;
+	}
+
+	if (Z_TYPE_PP(left) != IS_STRING) {
+		phalcon_make_printable_zval(*left, &left_copy, &use_copy);
+		if (use_copy) {
+			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
+		}
+	}
+
+	SEPARATE_ZVAL_IF_NOT_REF(left);
+
+	Z_STRLEN_PP(left)++;
+	Z_STRVAL_PP(left) = str_erealloc(Z_STRVAL_PP(left), Z_STRLEN_PP(left) + 1);
+	Z_STRVAL_PP(left)[Z_STRLEN_PP(left) - 1] = right;
+	Z_STRVAL_PP(left)[Z_STRLEN_PP(left)] = 0;
+	Z_TYPE_PP(left) = IS_STRING;
+
+	if (use_copy) {
+		phalcon_dtor(&left_copy);
+	}
+}

@@ -340,8 +340,8 @@ PHP_METHOD(Phalcon_Validation, add){
 	
 	PHALCON_ALLOC_GHOST_ZVAL(scope);
 	array_init_size(scope, 2);
-	phalcon_array_append(&scope, *attribute, 0);
-	phalcon_array_append(&scope, *validator, 0);
+	phalcon_array_append(&scope, *attribute, PH_COPY);
+	phalcon_array_append(&scope, *validator, PH_COPY);
 	phalcon_update_property_array_append(this_ptr, SL("_validators"), scope TSRMLS_CC);
 	
 	RETURN_THISW();
@@ -565,14 +565,6 @@ PHP_METHOD(Phalcon_Validation, getValue){
 					PHALCON_ZVAL_MAYBE_INTERNED_STRING(service_name, phalcon_interned_filter);
 	
 					PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
-					if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-						PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
-	
-						if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-							PHALCON_THROW_EXCEPTION_STR(phalcon_validation_exception_ce, "A dependency injector is required to obtain the 'filter' service");
-							return;
-						}
-					}
 	
 					PHALCON_CALL_METHOD(&filter_service, dependency_injector, "getshared", service_name);
 					if (Z_TYPE_P(filter_service) != IS_OBJECT) {
@@ -606,7 +598,7 @@ PHP_METHOD(Phalcon_Validation, setDefaultMessages)
 	phalcon_fetch_params(1, 0, 1, &messages);
 
 	if (messages && Z_TYPE_P(messages) != IS_NULL && Z_TYPE_P(messages) != IS_ARRAY) {
-		zend_throw_exception_ex(phalcon_validation_exception_ce, 0 TSRMLS_CC, "Messages must be an array");
+		PHALCON_THROW_EXCEPTION_STR(phalcon_validation_exception_ce, "Messages must be an array");
 		return;
 	}
 
@@ -629,6 +621,10 @@ PHP_METHOD(Phalcon_Validation, setDefaultMessages)
 	add_assoc_stringl_ex(default_messages, SS("FileMinSize"),       SL("File :field the size must be at least :min"), 1);
 	add_assoc_stringl_ex(default_messages, SS("FileType"),          SL("File :field must be of type: :types"), 1);
 	add_assoc_stringl_ex(default_messages, SS("FileValid"),         SL("Field :field is not valid"), 1);
+	add_assoc_stringl_ex(default_messages, SS("ImageMaxWidth"),     SL("Image :field the width must not exceed :max"), 1);
+	add_assoc_stringl_ex(default_messages, SS("ImageMinWidth"),     SL("Image :field the width must be at least :min"), 1);
+	add_assoc_stringl_ex(default_messages, SS("ImageMaxHeight"),    SL("Image :field the height must not exceed :max"), 1);
+	add_assoc_stringl_ex(default_messages, SS("ImageMinHeight"),    SL("Image :field the height must be at least :min"), 1);
 	add_assoc_stringl_ex(default_messages, SS("Identical"),         SL("Field :field does not have the expected value"), 1);
 	add_assoc_stringl_ex(default_messages, SS("InclusionIn"),       SL("Field :field must be a part of list: :domain"), 1);
 	add_assoc_stringl_ex(default_messages, SS("PresenceOf"),        SL("Field :field is required"), 1);

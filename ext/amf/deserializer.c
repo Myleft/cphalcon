@@ -24,7 +24,7 @@
 #include "amf/packet.h"
 #include "amf/exception.h"
 
-#include "ext/standard/php_smart_str.h"
+#include <ext/standard/php_smart_str.h>
 
 #include "kernel/main.h"
 #include "kernel/exception.h"
@@ -483,7 +483,7 @@ PHP_METHOD(Phalcon_Amf_Deserializer, readArray){
 		PHALCON_CALL_SELFW(&type, "readbyte");
 		PHALCON_CALL_SELFW(&value, "readdata", type);
 
-		phalcon_array_append(&return_value, value, 0);
+		phalcon_array_append(&return_value, value, PH_COPY);
 	}
 }
 

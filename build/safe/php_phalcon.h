@@ -29,7 +29,7 @@
 #include <TSRM/TSRM.h>
 #endif
 
-#define PHP_PHALCON_VERSION "1.3.2"
+#define PHP_PHALCON_VERSION "Dao-1.3.6"
 #define PHP_PHALCON_EXTNAME "phalcon"
 
 #define PHALCON_NUM_PREALLOCATED_FRAMES 25
@@ -59,16 +59,19 @@ typedef struct _phalcon_symbol_table {
 
 /** ORM options */
 typedef struct _phalcon_orm_options {
-	HashTable *parser_cache;
 	HashTable *ast_cache;
 	int cache_level;
-	int unique_cache_id;
 	zend_bool events;
 	zend_bool virtual_foreign_keys;
 	zend_bool column_renaming;
 	zend_bool not_null_validations;
+	zend_bool length_validations;
 	zend_bool exception_on_failed_save;
 	zend_bool enable_literals;
+	zend_bool enable_ast_cache;
+	zend_bool enable_property_method;
+	zend_bool enable_auto_convert;
+	zend_bool allow_update_primary;
 } phalcon_orm_options;
 
 /** DB options */
@@ -106,6 +109,7 @@ ZEND_BEGIN_MODULE_GLOBALS(phalcon)
 	zval *z_false;
 	zval *z_zero;
 	zval *z_one;
+	zval *z_two;
 
 	/** Function cache */
 	HashTable *fcache;
@@ -166,10 +170,10 @@ extern int nusphere_dbg_present;
 
 
 #define PHALCON_INIT_CLASS(name) \
-	int phalcon_ ##name## _init(TSRMLS_D)
+	int phalcon_ ##name## _init(int module_number TSRMLS_DC)
 
 #define PHALCON_INIT(name) \
-	if (phalcon_ ##name## _init(TSRMLS_C) == FAILURE) { \
+	if (phalcon_ ##name## _init(module_number TSRMLS_CC) == FAILURE) { \
 		return FAILURE; \
 	}
 
@@ -247,5 +251,11 @@ extern int nusphere_dbg_present;
 #	endif
 
 #endif /* !defined(__CYGWIN__) && !defined(WIN32) && defined(HAVE_CONFIG_H) */
+
+#if !defined(__CYGWIN__) && defined(WIN32)
+double round(double num) {
+	return (num > 0.0) ? floor(num + 0.5) : ceil(num - 0.5);
+}
+#endif
 
 #endif /* PHP_PHALCON_H */

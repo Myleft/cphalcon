@@ -946,6 +946,9 @@ class ViewEnginesVoltTest extends PHPUnit_Framework_TestCase
 		$compilation = $volt->compileString('{% if a!=b %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if ($a != $b) { ?> hello <?php } ?>');
 
+		$compilation = $volt->compileString('{% if a is not b %} hello {% endif %}');
+		$this->assertEquals($compilation, '<?php if ($a != $b) { ?> hello <?php } ?>');
+
 		$compilation = $volt->compileString('{% if a<b %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if ($a < $b) { ?> hello <?php } ?>');
 
@@ -979,14 +982,26 @@ class ViewEnginesVoltTest extends PHPUnit_Framework_TestCase
 		$compilation = $volt->compileString('{% if a is empty %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if (empty($a)) { ?> hello <?php } ?>');
 
+		$compilation = $volt->compileString('{% if a is not empty %} hello {% endif %}');
+		$this->assertEquals($compilation, '<?php if (!empty($a)) { ?> hello <?php } ?>');
+
 		$compilation = $volt->compileString('{% if a is numeric %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if (is_numeric($a)) { ?> hello <?php } ?>');
+
+		$compilation = $volt->compileString('{% if a is not numeric %} hello {% endif %}');
+		$this->assertEquals($compilation, '<?php if (!is_numeric($a)) { ?> hello <?php } ?>');
 
 		$compilation = $volt->compileString('{% if a is scalar %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if (is_scalar($a)) { ?> hello <?php } ?>');
 
+		$compilation = $volt->compileString('{% if a is not scalar %} hello {% endif %}');
+		$this->assertEquals($compilation, '<?php if (!is_scalar($a)) { ?> hello <?php } ?>');
+
 		$compilation = $volt->compileString('{% if a is iterable %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if ((is_array($a) || ($a) instanceof Traversable)) { ?> hello <?php } ?>');
+
+		$compilation = $volt->compileString('{% if a is not iterable %} hello {% endif %}');
+		$this->assertEquals($compilation, '<?php if (!(is_array($a) || ($a) instanceof Traversable)) { ?> hello <?php } ?>');
 
 		$compilation = $volt->compileString('{% if a is sameas(false) %} hello {% endif %}');
 		$this->assertEquals($compilation, '<?php if (($a) === (false)) { ?> hello <?php } ?>');
@@ -1303,7 +1318,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'index');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Hello Rock n roll!.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Hello Rock n roll!.'.PHP_EOL);
 
 		//Refreshing generated view
 		file_put_contents('unit-tests/views/test10/other.volt', '{{song}} {{song}}');
@@ -1320,7 +1335,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'other');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Le Song Le Song.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Le Song Le Song.'.PHP_EOL);
 
 		//Change the view
 		file_put_contents('unit-tests/views/test10/other.volt', 'Two songs: {{song}} {{song}}');
@@ -1329,7 +1344,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'other');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Two songs: Le Song Le Song.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Two songs: Le Song Le Song.'.PHP_EOL);
 
 	}
 

@@ -16,13 +16,13 @@
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
   +------------------------------------------------------------------------+
 */
-
-#include "kernel/main.h"
+#include "php_phalcon.h"
 
 #include <ext/spl/spl_exceptions.h>
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_interfaces.h>
 
+#include "kernel/main.h"
 #include "kernel/fcall.h"
 #include "kernel/exception.h"
 
@@ -53,13 +53,16 @@ void php_phalcon_init_globals(zend_phalcon_globals *phalcon_globals TSRMLS_DC) {
 	phalcon_globals->orm.virtual_foreign_keys = 1;
 	phalcon_globals->orm.column_renaming = 1;
 	phalcon_globals->orm.not_null_validations = 1;
+	phalcon_globals->orm.length_validations = 1;
 	phalcon_globals->orm.exception_on_failed_save = 0;
 	phalcon_globals->orm.enable_literals = 1;
 	phalcon_globals->orm.enable_ast_cache = 1;
 	phalcon_globals->orm.cache_level = 3;
-	phalcon_globals->orm.unique_cache_id = 0;
-	phalcon_globals->orm.parser_cache = NULL;
 	phalcon_globals->orm.ast_cache = NULL;
+	phalcon_globals->orm.enable_property_method = 1;
+	phalcon_globals->orm.enable_auto_convert = 1;
+	phalcon_globals->orm.allow_update_primary = 0;
+	phalcon_globals->orm.enable_strict = 0;
 
 	/* Security options */
 	phalcon_globals->security.crypt_std_des_supported  = zend_hash_quick_exists(constants, SS("CRYPT_STD_DES"),  zend_inline_hash_func(SS("CRYPT_STD_DES")));
@@ -150,7 +153,7 @@ long int phalcon_fast_count_int(zval *value TSRMLS_DC) {
 			if (retval) {
 				convert_to_long_ex(&retval);
 				result = Z_LVAL_P(retval);
-				zval_ptr_dtor(&retval);
+				phalcon_ptr_dtor(&retval);
 			}
 
 			return result;
@@ -195,7 +198,7 @@ void phalcon_fast_count(zval *result, zval *value TSRMLS_DC) {
 			if (retval) {
 				convert_to_long_ex(&retval);
 				ZVAL_LONG(result, Z_LVAL_P(retval));
-				zval_ptr_dtor(&retval);
+				phalcon_ptr_dtor(&retval);
 			}
 			return;
 		}
@@ -241,7 +244,7 @@ int phalcon_fast_count_ev(zval *value TSRMLS_DC) {
 			if (retval) {
 				convert_to_long_ex(&retval);
 				count = Z_LVAL_P(retval);
-				zval_ptr_dtor(&retval);
+				phalcon_ptr_dtor(&retval);
 				return (int) count > 0;
 			}
 			return 0;
@@ -316,9 +319,9 @@ int phalcon_fetch_parameters(int num_args TSRMLS_DC, int required_args, int opti
 	va_list va;
 	int arg_count = (int) (zend_uintptr_t) *(zend_vm_stack_top(TSRMLS_C) - 1);
 	zval **arg, **p;
-	int i;
+	int i, use_args_num;
 
-	if (num_args < required_args || (num_args > (required_args + optional_args))) {
+	if (num_args < required_args) {
 		phalcon_throw_exception_string(spl_ce_BadMethodCallException, "Wrong number of parameters" TSRMLS_CC);
 		return FAILURE;
 	}
@@ -333,6 +336,9 @@ int phalcon_fetch_parameters(int num_args TSRMLS_DC, int required_args, int opti
 	}
 
 	va_start(va, optional_args);
+
+	use_args_num = required_args + optional_args;
+	num_args = num_args > use_args_num ? use_args_num : num_args;
 
 	i = 0;
 	while (num_args-- > 0) {
@@ -361,6 +367,7 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...)
 	param_count = n_req + n_opt;
 
 	if (param_count < arg_count || n_req > arg_count) {
+		phalcon_throw_exception_string(spl_ce_BadMethodCallException, "Wrong number of parameters" TSRMLS_CC);
 		return FAILURE;
 	}
 
@@ -374,3 +381,30 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...)
 	va_end(ptr);
 	return SUCCESS;
 }
+
+#if PHP_VERSION_ID >= 50600
+
+#if ZEND_MODULE_API_NO >= 20141001
+void phalcon_clean_and_cache_symbol_table(zend_array *symbol_table)
+{
+	if (EG(symtable_cache_ptr) >= EG(symtable_cache_limit)) {
+		zend_array_destroy(symbol_table);
+	} else {
+		zend_symtable_clean(symbol_table);
+		*(++EG(symtable_cache_ptr)) = symbol_table;
+	}
+}
+#else
+void phalcon_clean_and_cache_symbol_table(HashTable *symbol_table TSRMLS_DC)
+{
+	if (EG(symtable_cache_ptr) >= EG(symtable_cache_limit)) {
+		zend_hash_destroy(symbol_table);
+		FREE_HASHTABLE(symbol_table);
+	} else {
+		zend_hash_clean(symbol_table);
+		*(++EG(symtable_cache_ptr)) = symbol_table;
+	}
+}
+#endif
+
+#endif

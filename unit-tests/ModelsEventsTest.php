@@ -67,6 +67,10 @@ class ModelsEventsTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		}, true);
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		$di->set('db', function(){
 			require 'unit-tests/config.db.php';
 			return new Phalcon\Db\Adapter\Pdo\Mysql($configMysql);
@@ -96,6 +100,9 @@ class ModelsEventsTest extends PHPUnit_Framework_TestCase
 		$robot->save();
 
 		$this->assertEquals($trace, array(
+			'beforeOperation' => array(
+				'GossipRobots' => 1,
+			),
 			'beforeValidation' => array(
 				'GossipRobots' => 2,
 			),
@@ -121,55 +128,6 @@ class ModelsEventsTest extends PHPUnit_Framework_TestCase
 
 	}
 
-	public function testEventsUpdate()
-	{
-		require 'unit-tests/config.db.php';
-		if (empty($configMysql)) {
-			$this->markTestSkipped('Test skipped');
-			return;
-		}
-
-		$trace = array();
-
-		$this->_prepareDI($trace);
-
-		$robot = GossipRobots::findFirst();
-
-		$robot->trace = &$trace;
-
-		$robot->save();
-
-		$this->assertEquals($trace, array(
-			'beforeValidation' => array(
-				'GossipRobots' => 2,
-			),
-			'beforeValidationOnUpdate' => array(
-				'GossipRobots' => 2,
-			),
-			'validation' => array(
-				'GossipRobots' => 2,
-			),
-			'afterValidationOnUpdate' => array(
-				'GossipRobots' => 2,
-			),
-			'afterValidation' => array(
-				'GossipRobots' => 2,
-			),
-			'beforeSave' => array(
-				'GossipRobots' => 2,
-			),
-			'beforeUpdate' => array(
-				'GossipRobots' => 2,
-			),
-			'afterUpdate' => array(
-				'GossipRobots' => 2,
-			),
-			'afterSave' => array(
-				'GossipRobots' => 2,
-			),
-		));
-
-	}
 
 	public function testEventsDelete()
 	{
@@ -190,6 +148,15 @@ class ModelsEventsTest extends PHPUnit_Framework_TestCase
 		$robot->delete();
 
 		$this->assertEquals($trace, array(
+			'beforeQuery' => array(
+				'GossipRobots' => 1,
+			),
+			'afterQuery' => array(
+				'GossipRobots' => 1,
+			),
+			'beforeOperation' => array(
+				'GossipRobots' => 1,
+			),
 			'beforeDelete' => array(
 				'GossipRobots' => 1,
 			)

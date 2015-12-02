@@ -1,4 +1,13 @@
 PHP_ARG_ENABLE(phalcon, whether to enable phalcon framework, [ --enable-phalcon   Enable phalcon framework])
+PHP_ARG_WITH(non-free, wheter to enable non-free css and js minifier, [ --without-non-free Disable non-free minifiers], yes, no)
+
+AC_MSG_CHECKING([Include non-free minifiers])
+if test "$PHP_NON_FREE" = "yes"; then
+	AC_DEFINE([PHALCON_NON_FREE], [1], [Whether non-free minifiers are available])
+	AC_MSG_RESULT([yes, css and js])
+else
+	AC_MSG_RESULT([no])
+fi
 
 if test "$PHP_PHALCON" = "yes"; then
 	AC_DEFINE(HAVE_PHALCON, 1, [Whether you have Phalcon Framework])
@@ -37,22 +46,16 @@ if test "$PHP_PHALCON" = "yes"; then
 		[[#include "php_config.h"]]
 	)
 
-	AC_CHECK_DECL(
-		[HAVE_JSON],
+	AC_CHECK_HEADERS(
+		[ext/json/php_json.h],
 		[
-			AC_CHECK_HEADERS(
-				[ext/json/php_json.h],
-				[
-					PHP_ADD_EXTENSION_DEP([phalcon], [json])
-					AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
-				],
-				,
-				[[#include "main/php.h"]]
-			)
+			PHP_ADD_EXTENSION_DEP([phalcon], [json])
+			AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
 		],
 		,
-		[[#include "php_config.h"]]
+		[[#include "main/php.h"]]
 	)
+
 
 	AC_CHECK_DECL(
 		[HAVE_PHP_SESSION],
@@ -89,6 +92,105 @@ if test "$PHP_PHALCON" = "yes"; then
 	)
 
 	CPPFLAGS=$old_CPPFLAGS
+
+	for i in /usr /usr/local; do
+		if test -r $i/include/png.h; then
+			PNG_CFLAGS=`pkg-config --cflags libpng`
+			PNG_LDFLAGS=`pkg-config --libs libpng`
+
+			PHP_ADD_INCLUDE($i/include)
+
+			CPPFLAGS="${CPPFLAGS} ${PNG_CFLAGS}"
+			EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${PNG_LDFLAGS}"
+
+			AC_MSG_RESULT("libpng found")
+
+			AC_DEFINE([PHALCON_USE_PNG], [1], [Have libpng support])
+			break
+		fi
+	done
+
+	if test -n "$PNG_CFLAGS"; then
+		for i in /usr /usr/local; do
+			if test -r $i/include/qrencode.h; then
+				QR_CFLAGS=`pkg-config --cflags libqrencode`
+				QR_LDFLAGS=`pkg-config --libs libqrencode`
+
+				PHP_ADD_INCLUDE($i/include)
+
+				CPPFLAGS="${CPPFLAGS} ${QR_CFLAGS}"
+				EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${QR_LDFLAGS}"
+
+				AC_MSG_RESULT("libqrencode found")
+
+				AC_DEFINE([PHALCON_USE_QRENCODE], [1], [Have libqrencode support])
+				break
+			fi
+		done
+	else
+		AC_MSG_RESULT([libpng not found])
+	fi
+
+	for i in /usr /usr/local; do
+		if test -r $i/bin/MagickWand-config; then
+			WAND_BINARY=$i/bin/MagickWand-config
+
+			WAND_CFLAGS=`$WAND_BINARY --cflags`
+			WAND_LDFLAGS=`$WAND_BINARY --libs`
+
+			PHP_ADD_INCLUDE($i/include)
+
+			CPPFLAGS="${CPPFLAGS} ${WAND_CFLAGS}"
+			EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${WAND_LDFLAGS}"
+
+			AC_DEFINE([PHALCON_USE_MAGICKWAND], [1], [Have ImageMagick MagickWand support])
+			break
+		fi
+	done
+
+	if test -r "$WAND_BINARY"; then
+		for i in /usr /usr/local; do
+			if test -r $i/include/zbar.h; then
+				ZBAR_CFLAGS=`pkg-config --cflags zbar`
+				ZBAR_LDFLAGS=`pkg-config --libs zbar`
+
+				PHP_ADD_INCLUDE($i/include)
+
+				CPPFLAGS="${CPPFLAGS} ${ZBAR_CFLAGS}"
+				EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${ZBAR_LDFLAGS}"
+
+				AC_MSG_RESULT("libzbar found")
+
+				AC_DEFINE([PHALCON_USE_ZBAR], [1], [Have libzbar support])
+				break
+			fi
+		done
+	fi
+
+	AC_MSG_CHECKING([for scws.h])
+	for i in /usr/local /usr /usr/local/include/scws; do
+		if test -r $i/include/scws/scws.h; then
+			AC_MSG_RESULT([yes, found in $i])
+
+			PHP_ADD_INCLUDE($i/include)
+
+			PHP_CHECK_LIBRARY(scws, scws_new,
+			[
+				PHP_ADD_LIBRARY_WITH_PATH(scws, $i/lib, PHALCON_SHARED_LIBADD)
+				PHP_SUBST(PHALCON_SHARED_LIBADD)
+
+				AC_DEFINE(PHALCON_USE_SCWS,1,[Have libscws support])
+			],[
+				AC_MSG_ERROR([Incorrect scws library])
+			],[
+				-L$i/lib -lm
+			])
+
+			break
+		else
+			AC_MSG_RESULT([no, found in $i])
+		fi
+	done
 
 	PHP_ADD_MAKEFILE_FRAGMENT([Makefile.frag])
 fi

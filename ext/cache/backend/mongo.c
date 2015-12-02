@@ -124,7 +124,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, __construct){
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 1, 1, &frontend, &options);
-	
+
 	if (!options) {
 		options = PHALCON_GLOBAL(z_null);
 	}
@@ -135,18 +135,19 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, __construct){
 			return;
 		}
 	}
+
 	if (!phalcon_array_isset_string(options, SS("db"))) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_cache_exception_ce, "The parameter 'db' is required");
 		return;
 	}
-	
+
 	if (!phalcon_array_isset_string(options, SS("collection"))) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_cache_exception_ce, "The parameter 'collection' is required");
 		return;
 	}
-	
+
 	PHALCON_CALL_PARENT(NULL, phalcon_cache_backend_mongo_ce, this_ptr, "__construct", frontend, options);
-	
+
 	PHALCON_MM_RESTORE();
 }
 
@@ -157,7 +158,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, __construct){
  */
 PHP_METHOD(Phalcon_Cache_Backend_Mongo, _getCollection){
 
-	zval *mongo_collection, *mongo_database = NULL;
+	zval *mongo_collection;
 	zend_class_entry *ce0;
 
 	PHALCON_MM_GROW();
@@ -216,8 +217,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, _getCollection){
 		/** 
 		 * Make the connection and get the collection
 		 */
-		PHALCON_CALL_METHOD(&mongo_database, mongo, "selectdb", database);
-		PHALCON_RETURN_CALL_METHOD(mongo_database, "selectcollection", collection);
+		PHALCON_RETURN_CALL_METHOD(mongo, "selectcollection", database, collection);
 	}
 	else {
 		RETVAL_ZVAL(mongo_collection, 1, 0);
@@ -621,10 +621,6 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, increment){
 	} else {
 		PHALCON_CPY_WRT(ttl, lifetime);
 	}
-
-	/*
-	 * phalcon_add_function(newlifetime, ttl, timestamp TSRMLS_CC);
-	 */
 	
 	if (!phalcon_array_isset_string(document, SS("time"))) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_cache_exception_ce, "The cache is currupted");
@@ -635,7 +631,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, increment){
 	phalcon_array_fetch_string(&modified_time, document, SL("time"), PH_NOISY);
 	
 	PHALCON_INIT_VAR(difference);
-	sub_function(difference, timestamp, ttl TSRMLS_CC);
+	phalcon_sub_function(difference, timestamp, ttl);
 	
 	PHALCON_INIT_VAR(not_expired);
 	is_smaller_function(not_expired, difference, modified_time TSRMLS_CC);
@@ -658,10 +654,10 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, increment){
 		}
 
 		if (phalcon_is_numeric(cached_content)) {
-			add_function(return_value, cached_content, value TSRMLS_CC);
+			phalcon_add_function(return_value, cached_content, value);
 				
 			PHALCON_INIT_NVAR(ttl);
-			phalcon_add_function(ttl, lifetime, timestamp TSRMLS_CC);
+			phalcon_add_function(ttl, lifetime, timestamp);
 
 			PHALCON_CALL_METHOD(NULL, this_ptr, "save", prefixed_key, return_value);
 		}
@@ -733,10 +729,6 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, decrement){
 	} else {
 		PHALCON_CPY_WRT(ttl, lifetime);
 	}
-
-	/*
-	 * phalcon_add_function(newlifetime, ttl, timestamp TSRMLS_CC);
-	 */
 	
 	if (!phalcon_array_isset_string(document, SS("time"))) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_cache_exception_ce, "The cache is currupted");
@@ -747,7 +739,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, decrement){
 	phalcon_array_fetch_string(&modified_time, document, SL("time"), PH_NOISY);
 	
 	PHALCON_INIT_VAR(difference);
-	sub_function(difference, timestamp, ttl TSRMLS_CC);
+	phalcon_sub_function(difference, timestamp, ttl);
 	
 	PHALCON_INIT_VAR(not_expired);
 	is_smaller_function(not_expired, difference, modified_time TSRMLS_CC);
@@ -770,10 +762,10 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, decrement){
 		}
 
 		if (phalcon_is_numeric(cached_content)) {
-			sub_function(return_value, cached_content, value TSRMLS_CC);
+			phalcon_sub_function(return_value, cached_content, value);
 				
 			PHALCON_INIT_NVAR(ttl);
-			phalcon_add_function(ttl, lifetime, timestamp TSRMLS_CC);
+			phalcon_add_function(ttl, lifetime, timestamp);
 
 			PHALCON_CALL_METHOD(NULL, this_ptr, "save", prefixed_key, return_value);
 		}

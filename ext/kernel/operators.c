@@ -20,10 +20,13 @@
 #include "kernel/operators.h"
 
 #include <ext/standard/php_string.h>
+#include <ext/standard/php_math.h>
+#include <ext/spl/php_spl.h>
 #include <Zend/zend_operators.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
+#include "kernel/string.h"
 
 
 void phalcon_make_printable_zval(zval *expr, zval *expr_copy, int *use_copy){
@@ -41,101 +44,6 @@ int phalcon_and_function(zval *result, zval *left, zval *right){
 	int istrue = zend_is_true(left) && zend_is_true(right);
 	ZVAL_BOOL(result, istrue);
 	return SUCCESS;
-}
-
-/**
- * Appends the content of the right operator to the left operator
- */
-void phalcon_concat_self(zval **left, zval *right TSRMLS_DC){
-
-	zval left_copy, right_copy;
-	uint length;
-	int use_copy_left = 0, use_copy_right = 0;
-
-	if (Z_TYPE_P(right) != IS_STRING) {
-		phalcon_make_printable_zval(right, &right_copy, &use_copy_right);
-		if (use_copy_right) {
-			right = &right_copy;
-		}
-	}
-
-	if (Z_TYPE_PP(left) == IS_NULL) {
-
-		Z_STRVAL_PP(left) = emalloc(Z_STRLEN_P(right) + 1);
-		memcpy(Z_STRVAL_PP(left), Z_STRVAL_P(right), Z_STRLEN_P(right));
-		Z_STRVAL_PP(left)[Z_STRLEN_P(right)] = 0;
-		Z_STRLEN_PP(left) = Z_STRLEN_P(right);
-		Z_TYPE_PP(left) = IS_STRING;
-
-		if (use_copy_right) {
-			zval_dtor(&right_copy);
-		}
-
-		return;
-	}
-
-	if (Z_TYPE_PP(left) != IS_STRING) {
-		phalcon_make_printable_zval(*left, &left_copy, &use_copy_left);
-		if (use_copy_left) {
-			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
-		}
-	}
-
-	length = Z_STRLEN_PP(left) + Z_STRLEN_P(right);
-	Z_STRVAL_PP(left) = erealloc(Z_STRVAL_PP(left), length + 1);
-
-	memcpy(Z_STRVAL_PP(left) + Z_STRLEN_PP(left), Z_STRVAL_P(right), Z_STRLEN_P(right));
-	Z_STRVAL_PP(left)[length] = 0;
-	Z_STRLEN_PP(left) = length;
-	Z_TYPE_PP(left) = IS_STRING;
-
-	if (use_copy_left) {
-		zval_dtor(&left_copy);
-	}
-
-	if (use_copy_right) {
-		zval_dtor(&right_copy);
-	}
-}
-
-/**
- * Appends the content of the right operator to the left operator
- */
-void phalcon_concat_self_str(zval **left, const char *right, int right_length TSRMLS_DC){
-
-	zval left_copy;
-	uint length;
-	int use_copy = 0;
-
-	if (Z_TYPE_PP(left) == IS_NULL) {
-
-		Z_STRVAL_PP(left) = emalloc(right_length + 1);
-		memcpy(Z_STRVAL_PP(left), right, right_length);
-		Z_STRVAL_PP(left)[right_length] = 0;
-		Z_STRLEN_PP(left) = right_length;
-		Z_TYPE_PP(left) = IS_STRING;
-
-		return;
-	}
-
-	if (Z_TYPE_PP(left) != IS_STRING) {
-		phalcon_make_printable_zval(*left, &left_copy, &use_copy);
-		if (use_copy) {
-			PHALCON_CPY_WRT_CTOR(*left, (&left_copy));
-		}
-	}
-
-	length = Z_STRLEN_PP(left) + right_length;
-	Z_STRVAL_PP(left) = erealloc(Z_STRVAL_PP(left), length + 1);
-
-	memcpy(Z_STRVAL_PP(left) + Z_STRLEN_PP(left), right, right_length);
-	Z_STRVAL_PP(left)[length] = 0;
-	Z_STRLEN_PP(left) = length;
-	Z_TYPE_PP(left) = IS_STRING;
-
-	if (use_copy) {
-		zval_dtor(&left_copy);
-	}
 }
 
 /**
@@ -199,18 +107,113 @@ int phalcon_compare_strict_long(zval *op1, long op2 TSRMLS_DC){
 }
 
 /**
+* Natural compare with double operandus on right
+ */
+int phalcon_compare_strict_double(zval *op1, double op2 TSRMLS_DC) {
+
+	int bool_result;
+
+	switch (Z_TYPE_P(op1)) {
+		case IS_LONG:
+			return Z_LVAL_P(op1) == (long) op2;
+		case IS_DOUBLE:
+			return Z_DVAL_P(op1) == op2;
+		case IS_NULL:
+			return 0 == op2;
+		case IS_BOOL:
+			if (Z_BVAL_P(op1)) {
+				return 1 == op2;
+			} else {
+				return 0 == op2;
+			}
+		default:
+			{
+				zval result, op2_tmp;
+				ZVAL_DOUBLE(&op2_tmp, op2);
+				is_equal_function(&result, op1, &op2_tmp TSRMLS_CC);
+				bool_result = Z_BVAL(result);
+				return bool_result;
+			}
+	}
+
+	return 0;
+}
+
+/**
+ * Natural compare with bool operandus on right
+ */
+int phalcon_compare_strict_bool(zval *op1, zend_bool op2 TSRMLS_DC) {
+
+	int bool_result;
+
+	switch (Z_TYPE_P(op1)) {
+		case IS_LONG:
+			return (Z_LVAL_P(op1) ? 1 : 0) == op2;
+		case IS_DOUBLE:
+			return (Z_DVAL_P(op1) ? 1 : 0) == op2;
+		case IS_NULL:
+			return 0 == op2;
+		case IS_BOOL:
+			if (Z_BVAL_P(op1)) {
+				return 1 == op2;
+			} else {
+				return 0 == op2;
+			}
+		default:
+			{
+				zval result, op2_tmp;
+				ZVAL_BOOL(&op2_tmp, op2);
+				is_equal_function(&result, op1, &op2_tmp TSRMLS_CC);
+				bool_result = Z_BVAL(result);
+				return bool_result;
+			}
+	}
+
+	return 0;
+}
+/**
  * Do add function keeping ref_count and is_ref
  */
-int phalcon_add_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+int phalcon_add_function_ex(zval *result, zval *op1, zval *op2 TSRMLS_DC){
 	int status;
 	int ref_count = Z_REFCOUNT_P(result);
 	int is_ref = Z_ISREF_P(result);
-	status = add_function(result, op1, op2 TSRMLS_CC);
+#if PHP_VERSION_ID < 50400
+ 	status = add_function(result, op1, op2 TSRMLS_CC);
+#else
+	status = fast_add_function(result, op1, op2 TSRMLS_CC);
+#endif
 	Z_SET_REFCOUNT_P(result, ref_count);
 	Z_SET_ISREF_TO_P(result, is_ref);
 	return status;
 }
 
+void phalcon_negate(zval *z TSRMLS_DC) {
+	while (1) {
+		switch (Z_TYPE_P(z)) {
+			case IS_LONG:
+			case IS_BOOL:
+				ZVAL_LONG(z, -Z_LVAL_P(z));
+				return;
+
+			case IS_DOUBLE:
+				ZVAL_DOUBLE(z, -Z_DVAL_P(z));
+				return;
+
+			case IS_NULL:
+				ZVAL_LONG(z, 0);
+				return;
+
+			default:
+				convert_scalar_to_number(z TSRMLS_CC);
+				assert(Z_TYPE_P(z) == IS_LONG || Z_TYPE_P(z) == IS_DOUBLE);
+		}
+	}
+}
+
+void phalcon_convert_to_object(zval *op) {
+    convert_to_object(op);
+}
 /**
  * Cast variables converting they to other types
  */
@@ -243,9 +246,20 @@ void phalcon_cast(zval *result, zval *var, zend_uint type){
 /**
  * Returns the long value of a zval
  */
-long phalcon_get_intval(const zval *op) {
+long phalcon_get_intval_ex(const zval *op) {
 
 	switch (Z_TYPE_P(op)) {
+        case IS_ARRAY:
+            return zend_hash_num_elements(Z_ARRVAL_P(op)) ? 1 : 0;
+            break;
+
+#if PHP_VERSION_ID > 50400
+	    case IS_CALLABLE:
+#endif
+	    case IS_RESOURCE:
+	    case IS_OBJECT:
+	        return 1;
+
 		case IS_LONG:
 			return Z_LVAL_P(op);
 		case IS_BOOL:
@@ -273,9 +287,92 @@ long phalcon_get_intval(const zval *op) {
 }
 
 /**
+ * Returns the double value of a zval
+ */
+double phalcon_get_doubleval_ex(const zval *op) {
+
+	switch (Z_TYPE_P(op)) {
+        case IS_ARRAY:
+            return zend_hash_num_elements(Z_ARRVAL_P(op)) ? (double) 1 : 0;
+            break;
+#if PHP_VERSION_ID > 50400
+	    case IS_CALLABLE:
+#endif
+	    case IS_RESOURCE:
+	    case IS_OBJECT:
+	        return (double) 1;
+		case IS_LONG:
+			return (double) Z_LVAL_P(op);
+		case IS_BOOL:
+			return (double) Z_BVAL_P(op);
+		case IS_DOUBLE:
+			return Z_DVAL_P(op);
+		case IS_STRING: {
+			long long_value;
+			double double_value;
+			zend_uchar type;
+			
+			ASSUME(Z_STRVAL_P(op) != NULL);
+			type = is_numeric_string(Z_STRVAL_P(op), Z_STRLEN_P(op), &long_value, &double_value, 0);
+			if (type == IS_LONG) {
+				return long_value;
+			}
+			if (type == IS_DOUBLE) {
+				return double_value;
+			}
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
+/**
  * Returns the long value of a zval
  */
-int phalcon_is_numeric(const zval *op) {
+zend_bool phalcon_get_boolval_ex(const zval *op) {
+
+	int type;
+	long long_value = 0;
+	double double_value = 0;
+
+	switch (Z_TYPE_P(op)) {
+        case IS_ARRAY:
+            return zend_hash_num_elements(Z_ARRVAL_P(op)) ? (zend_bool) 1 : 0;
+            break;
+#if PHP_VERSION_ID > 50400
+	    case IS_CALLABLE:
+#endif
+	    case IS_RESOURCE:
+	    case IS_OBJECT:
+	        return (zend_bool) 1;
+		case IS_LONG:
+			return (Z_LVAL_P(op) ? (zend_bool) 1 : 0);
+		case IS_BOOL:
+			return Z_BVAL_P(op);
+		case IS_DOUBLE:
+			return (Z_DVAL_P(op) ? (zend_bool) 1 : 0);
+		case IS_STRING:
+			if ((type = is_numeric_string(Z_STRVAL_P(op), Z_STRLEN_P(op), &long_value, &double_value, 0))) {
+				if (type == IS_LONG) {
+					return (long_value ? (zend_bool) 1 : 0);
+				} else {
+					if (type == IS_DOUBLE) {
+						return (double_value ? (zend_bool) 1 : 0);
+					} else {
+						return 0;
+					}
+				}
+			}
+	}
+
+	return 0;
+}
+
+/**
+ * Returns the long value of a zval
+ */
+int phalcon_is_numeric_ex(const zval *op) {
 
 	int type;
 
@@ -302,8 +399,40 @@ int phalcon_is_numeric(const zval *op) {
  */
 int phalcon_is_equal(zval *op1, zval *op2 TSRMLS_DC) {
 	zval result;
+
+	#if PHP_VERSION_ID < 50400
 	is_equal_function(&result, op1, op2 TSRMLS_CC);
 	return Z_BVAL(result);
+	#else
+	return fast_equal_function(&result, op1, op2 TSRMLS_CC);
+	#endif
+}
+
+/**
+ * Check if a zval is equal than a long value
+ */
+int phalcon_is_equal_long(zval *op1, long op2 TSRMLS_DC) {
+	zval result, op2_zval;
+	ZVAL_LONG(&op2_zval, op2);
+	is_equal_function(&result, op1, &op2_zval TSRMLS_CC);
+	return Z_BVAL(result);
+}
+
+/**
+ * Check if two object are equal
+ */
+int phalcon_is_equal_object(zval *obj1, zval *obj2 TSRMLS_DC) {
+	char md5str[33];
+	char md5str2[33];
+
+	if (Z_TYPE_P(obj1) != IS_OBJECT && Z_TYPE_P(obj1) != IS_OBJECT) {
+		return 0;
+	}
+
+	php_spl_object_hash(obj1, md5str TSRMLS_CC);
+	php_spl_object_hash(obj2, md5str2 TSRMLS_CC);
+
+	return strcmp(md5str, md5str2) == 0;
 }
 
 /**
@@ -386,4 +515,301 @@ int phalcon_is_identical(zval *op1, zval *op2 TSRMLS_DC) {
 	zval result;
 	is_identical_function(&result, op1, op2 TSRMLS_CC);
 	return Z_BVAL(result);
+}
+
+/**
+ * Do bitwise_and function keeping ref_count and is_ref
+ */
+int phalcon_bitwise_and_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+	int status;
+	int ref_count = Z_REFCOUNT_P(result);
+	int is_ref = Z_ISREF_P(result);
+	status = bitwise_and_function(result, op1, op2 TSRMLS_CC);
+	Z_SET_REFCOUNT_P(result, ref_count);
+	Z_SET_ISREF_TO_P(result, is_ref);
+	return status;
+}
+
+/**
+ * Do bitwise_or function keeping ref_count and is_ref
+ */
+int phalcon_bitwise_or_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+	int status;
+	int ref_count = Z_REFCOUNT_P(result);
+	int is_ref = Z_ISREF_P(result);
+	status = bitwise_or_function(result, op1, op2 TSRMLS_CC);
+	Z_SET_REFCOUNT_P(result, ref_count);
+	Z_SET_ISREF_TO_P(result, is_ref);
+	return status;
+}
+
+/**
+ * Do bitwise_xor function keeping ref_count and is_ref
+ */
+int phalcon_bitwise_xor_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+	int status;
+	int ref_count = Z_REFCOUNT_P(result);
+	int is_ref = Z_ISREF_P(result);
+	status = bitwise_xor_function(result, op1, op2 TSRMLS_CC);
+	Z_SET_REFCOUNT_P(result, ref_count);
+	Z_SET_ISREF_TO_P(result, is_ref);
+	return status;
+}
+
+/**
+ * Do shiftleft function keeping ref_count and is_ref
+ */
+int phalcon_shift_left_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+	int status;
+	int ref_count = Z_REFCOUNT_P(result);
+	int is_ref = Z_ISREF_P(result);
+	status = shift_left_function(result, op1, op2 TSRMLS_CC);
+	Z_SET_REFCOUNT_P(result, ref_count);
+	Z_SET_ISREF_TO_P(result, is_ref);
+	return status;
+}
+
+/**
+ * Do shiftright function keeping ref_count and is_ref
+ */
+int phalcon_shift_right_function(zval *result, zval *op1, zval *op2 TSRMLS_DC){
+	int status;
+	int ref_count = Z_REFCOUNT_P(result);
+	int is_ref = Z_ISREF_P(result);
+	status = shift_right_function(result, op1, op2 TSRMLS_CC);
+	Z_SET_REFCOUNT_P(result, ref_count);
+	Z_SET_ISREF_TO_P(result, is_ref);
+	return status;
+}
+
+/**
+ * Do safe divisions between two longs
+ */
+double phalcon_safe_div_long_long(long op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return (double) op1 / (double) op2;
+}
+
+/**
+ * Do safe divisions between two long/double
+ */
+double phalcon_safe_div_long_double(long op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return (double) op1 / op2;
+}
+
+/**
+ * Do safe divisions between two double/long
+ */
+double phalcon_safe_div_double_long(double op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return op1 / (double) op2;
+}
+
+/**
+ * Do safe divisions between two doubles
+ */
+double phalcon_safe_div_double_double(double op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return op1 / op2;
+}
+
+/**
+ * Do safe divisions between two zval/long
+ */
+double phalcon_safe_div_zval_long(zval *op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op1)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return ((double) phalcon_get_numberval(op1)) / (double) op2;
+}
+
+/**
+ * Do safe divisions between two zval/double
+ */
+double phalcon_safe_div_zval_double(zval *op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op1)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return ((double) phalcon_get_numberval(op1)) / op2;
+}
+
+/**
+ * Do safe divisions between two long/zval
+ */
+double phalcon_safe_div_long_zval(long op1, zval *op2 TSRMLS_DC) {
+	if (!phalcon_get_numberval(op2)) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op2)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return (double) op1 / ((double) phalcon_get_numberval(op2));
+}
+
+/**
+ * Do safe divisions between two double/zval
+ */
+double phalcon_safe_div_double_zval(double op1, zval *op2 TSRMLS_DC) {
+	if (!phalcon_get_numberval(op2)) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op2)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return op1 / ((double) phalcon_get_numberval(op2));
+}
+
+/**
+ * Do safe divisions between two longs
+ */
+long phalcon_safe_mod_long_long(long op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return op1 % op2;
+}
+
+/**
+ * Do safe divisions between two long/double
+ */
+long phalcon_safe_mod_long_double(long op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return op1 % (long) op2;
+}
+
+/**
+ * Do safe divisions between two double/long
+ */
+long phalcon_safe_mod_double_long(double op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return (long) op1 % op2;
+}
+
+/**
+ * Do safe divisions between two doubles
+ */
+long phalcon_safe_mod_double_double(double op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	return (long) op1 % (long) op2;
+}
+
+/**
+ * Do safe divisions between two zval/long
+ */
+long phalcon_safe_mod_zval_long(zval *op1, long op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op1)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return ((long) phalcon_get_numberval(op1)) % (long) op2;
+}
+
+/**
+ * Do safe divisions between two zval/double
+ */
+long phalcon_safe_mod_zval_double(zval *op1, double op2 TSRMLS_DC) {
+	if (!op2) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op1)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return ((long) phalcon_get_numberval(op1)) % (long) op2;
+}
+
+/**
+ * Do safe divisions between two long/zval
+ */
+long phalcon_safe_mod_long_zval(long op1, zval *op2 TSRMLS_DC) {
+	if (!phalcon_get_numberval(op2)) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op2)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return op1 % ((long) phalcon_get_numberval(op2));
+}
+
+/**
+ * Do safe divisions between two double/zval
+ */
+long phalcon_safe_mod_double_zval(double op1, zval *op2 TSRMLS_DC) {
+	if (!phalcon_get_numberval(op2)) {
+		zend_error(E_WARNING, "Division by zero");
+		return 0;
+	}
+	switch (Z_TYPE_P(op2)) {
+		case IS_ARRAY:
+		case IS_OBJECT:
+		case IS_RESOURCE:
+			zend_error(E_WARNING, "Unsupported operand types");
+			break;
+	}
+	return (long) op1 % ((long) phalcon_get_numberval(op2));
 }

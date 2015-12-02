@@ -70,7 +70,7 @@ PHP_METHOD(Phalcon_Version, _getVersion){
 	array_init_size(return_value, 5);
 	add_next_index_long(return_value, 1);
 	add_next_index_long(return_value, 3);
-	add_next_index_long(return_value, 3);
+	add_next_index_long(return_value, 5);
 	add_next_index_long(return_value, PHALCON_VERSION_STABLE);
 	add_next_index_long(return_value, 1);
 }
@@ -132,7 +132,7 @@ PHP_METHOD(Phalcon_Version, get){
 
 	}
 	phalcon_concat_self(&result, suffix TSRMLS_CC);
-	phalcon_fast_trim(return_value, result, PHALCON_TRIM_BOTH TSRMLS_CC);
+	phalcon_fast_trim(return_value, result, NULL, PHALCON_TRIM_BOTH TSRMLS_CC);
 	RETURN_MM();
 }
 

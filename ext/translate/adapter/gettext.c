@@ -45,13 +45,14 @@ static zend_object_handlers phalcon_translate_adapter_gettext_object_handlers;
 static zval* phalcon_translate_adapter_gettext_read_dimension(zval *object, zval *offset, int type TSRMLS_DC)
 {
 	zval *translation = NULL, *params[1];
+	uint32_t result;
 
 	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->read_dimension(object, offset, type TSRMLS_CC);
 	}
 
 	params[0] = offset;
-	uint32_t result = phalcon_call_func_aparams(&translation, SL("gettext"), 1, params TSRMLS_CC);
+	result = phalcon_call_func_aparams(&translation, SL("gettext"), 1, params TSRMLS_CC);
 
 	if (result) {
 		MAKE_STD_ZVAL(translation);
@@ -64,13 +65,14 @@ static zval* phalcon_translate_adapter_gettext_read_dimension(zval *object, zval
 static int phalcon_translate_adapter_gettext_has_dimension(zval *object, zval *offset, int check_empty TSRMLS_DC)
 {
 	zval *translation = NULL, *params[1];
+	uint32_t result;
 
 	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->has_dimension(object, offset, check_empty TSRMLS_CC);
 	}
 
 	params[0] = offset;
-	uint32_t result = phalcon_call_func_aparams(&translation, SL("gettext"), 1, params TSRMLS_CC);
+	result = phalcon_call_func_aparams(&translation, SL("gettext"), 1, params TSRMLS_CC);
 
 	if (result) {
 		return 0;
@@ -132,23 +134,23 @@ PHP_METHOD(Phalcon_Translate_Adapter_Gettext, __construct){
 	phalcon_fetch_params(1, 1, 0, &options);
 	
 	if (Z_TYPE_P(options) != IS_ARRAY) { 
-		PHALCON_THROW_EXCEPTION_STRW(phalcon_translate_exception_ce, "Invalid options");
-		return;
+		PHALCON_THROW_EXCEPTION_STR(phalcon_translate_exception_ce, "Invalid options");
+		RETURN_MM();
 	}
 
 	if (!phalcon_array_isset_string_fetch(&locale, options, SS("locale"))) {
 		PHALCON_THROW_EXCEPTION_STRW(phalcon_translate_exception_ce, "Parameter \"locale\" is required");
-		return;
+		RETURN_MM();
 	}
 
 	if (!phalcon_array_isset_string_fetch(&default_domain, options, SS("defaultDomain"))) {
 		PHALCON_THROW_EXCEPTION_STRW(phalcon_translate_exception_ce, "Parameter \"defaultDomain\" is required");
-		return;
+		RETURN_MM();
 	}
 
 	if (!phalcon_array_isset_string_fetch(&directory, options, SS("directory"))) {
 		PHALCON_THROW_EXCEPTION_STRW(phalcon_translate_exception_ce, "Parameter \"directory\" is required");
-		return;
+		RETURN_MM();
 	}
 
 	phalcon_update_property_this(this_ptr, SL("_locale"), locale TSRMLS_CC);

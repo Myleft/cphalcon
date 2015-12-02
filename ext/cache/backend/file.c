@@ -128,6 +128,7 @@ PHP_METHOD(Phalcon_Cache_Backend_File, __construct){
 	}
 
 	PHALCON_CALL_PARENT(NULL, phalcon_cache_backend_file_ce, this_ptr, "__construct", frontend, options);
+
 	PHALCON_MM_RESTORE();
 }
 
@@ -411,7 +412,7 @@ PHP_METHOD(Phalcon_Cache_Backend_File, queryKeys){
 			}
 
 			if (!EG(exception) && (!prefix || phalcon_start_with(key, prefix, NULL))) {
-				phalcon_array_append(&return_value, key, 0);
+				phalcon_array_append(&return_value, key, PH_COPY);
 			}
 		}
 
@@ -683,7 +684,7 @@ PHP_METHOD(Phalcon_Cache_Backend_File, decrement){
 				RETURN_MM();
 			}
 
-			sub_function(return_value, cached_content, *value TSRMLS_CC);
+			phalcon_sub_function(return_value, cached_content, *value);
 
 			PHALCON_INIT_VAR(status);
 			phalcon_file_put_contents(status, cache_file, return_value TSRMLS_CC);

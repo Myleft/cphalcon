@@ -71,6 +71,10 @@ class ModelsTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		});
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		$di->set('db', $dbService, true);
 
 		return $di;
@@ -749,5 +753,15 @@ class ModelsTest extends PHPUnit_Framework_TestCase
 
 		$personer->refresh();
 		$this->assertEquals($personerData, $personer->toArray());
+	}
+
+	public function testRawValue() {
+		$parameters = array(
+			'conditions' => ' :rawsql: ',
+			'bind' => array('rawsql' => new Phalcon\Db\RawValue("estado='I'")),
+		);
+
+		$people = People::findFirst($parameters);
+		$this->assertTrue(is_object($people));
 	}
 }

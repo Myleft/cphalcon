@@ -56,6 +56,10 @@ class PaginatorTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		});
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		$di->set('db', function() {
 			require 'unit-tests/config.db.php';
 			return new Phalcon\Db\Adapter\Pdo\Mysql($configMysql);
@@ -389,7 +393,7 @@ class PaginatorTest extends PHPUnit_Framework_TestCase
 
 		// test of getter/setters of querybuilder adapter
 
-        // -- current page --
+		// -- current page --
 		$currentPage = $paginator->getCurrentPage();
 		$this->assertEquals($currentPage, 218);
 
@@ -414,6 +418,49 @@ class PaginatorTest extends PHPUnit_Framework_TestCase
 		$queryBuilder = $paginator->getQueryBuilder();
 		$this->assertEquals($builder2, $queryBuilder);
 		$this->assertEquals($setterResult, $paginator);
+
+		// test raw value
+		$builder = $di['modelsManager']->createBuilder()
+					->columns('*')
+					->from('Personnes')
+					->where('tipo_documento_id = :tipo_documento_id:', array('tipo_documento_id' => 1))
+					->andWhere('estado = :estado:', array('estado' => new Phalcon\Db\RawValue("'A'")))
+					->orderBy('cedula');
+
+		$paginator = new Phalcon\Paginator\Adapter\QueryBuilder(array(
+			"builder" => $builder,
+			"limit"=> 10,
+			"page" => 1
+		));
+
+		$page = $paginator->getPaginate();
+
+		$this->assertEquals(get_class($page), 'stdClass');
+		$this->assertTrue(count($page->items) > 0);
+		$this->assertEquals($page->current, 1);
+		$this->assertTrue($page->total_pages > 0);
+
+		$bind_params = array('rawsql' => new Phalcon\Db\RawValue('tipo_documento_id=1'));
+		$bind_types = array('rawsql' => PDO::PARAM_STR);
+
+		$users = $di->modelsManager->createBuilder()->from('Personnes')->andwhere(":rawsql:", $bind_params, $bind_types);
+		$paginator = new \Phalcon\Paginator\Adapter\QueryBuilder(array(
+			"builder" => $users,
+			"limit" => 10,
+			"page" => 1
+		));
+		$page = $paginator->getPaginate();
+
+		$this->assertEquals($bind_params, array('rawsql' => new Phalcon\Db\RawValue('tipo_documento_id=1')));
+		$this->assertEquals($bind_types, array('rawsql' => PDO::PARAM_STR));
+
+		$bind_params = array('rawsql' => new Phalcon\Db\RawValue('tipo_documento_id=1'), 'estado' => 'A');
+		$bind_types = array('rawsql' => PDO::PARAM_STR , 'estado' => PDO::PARAM_STR);
+
+		$users = $di->modelsManager->executeQuery("SELECT * FROM Personnes WHERE :rawsql: AND estado = :estado: LIMIT 2", $bind_params, $bind_types);
+
+		$this->assertEquals($bind_params, array('rawsql' => new Phalcon\Db\RawValue('tipo_documento_id=1'), 'estado' => 'A'));
+		$this->assertEquals($bind_types, array('rawsql' => PDO::PARAM_STR , 'estado' => PDO::PARAM_STR));
 	}
 
 	public function testIssue2301()
@@ -448,5 +495,31 @@ class PaginatorTest extends PHPUnit_Framework_TestCase
 
 		$this->assertEquals($page->current, 1);
 		$this->assertEquals($page->total_pages, 2);
+	}
+
+	public function testIssue2739()
+	{
+		require 'unit-tests/config.db.php';
+		if (empty($configMysql)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$di = $this->_loadDI();
+
+		$builder = $di['modelsManager']->createBuilder()
+					->columns('Robots.name')
+					->from('Robots')
+					->join('RobotsParts', 'Robots.id = p.robots_id', 'p');
+
+		$paginator = new Phalcon\Paginator\Adapter\QueryBuilder(array(
+			"builder" => $builder,
+			"limit"=> 10,
+			"page" => 1
+		));
+
+		$page = $paginator->getPaginate();
+
+		$this->assertEquals(get_class($page), 'stdClass');
 	}
 }

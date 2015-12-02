@@ -42,6 +42,11 @@ PHP_METHOD(Phalcon_Text, startsWith);
 PHP_METHOD(Phalcon_Text, endsWith);
 PHP_METHOD(Phalcon_Text, lower);
 PHP_METHOD(Phalcon_Text, upper);
+PHP_METHOD(Phalcon_Text, bytes);
+PHP_METHOD(Phalcon_Text, reduceSlashes);
+PHP_METHOD(Phalcon_Text, concat);
+PHP_METHOD(Phalcon_Text, underscore);
+PHP_METHOD(Phalcon_Text, humanize);
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_camelize, 0, 0, 1)
 	ZEND_ARG_INFO(0, str)
@@ -81,6 +86,31 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_upper, 0, 0, 1)
 	ZEND_ARG_INFO(0, str)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_bytes, 0, 0, 1)
+	ZEND_ARG_INFO(0, size)
+	ZEND_ARG_INFO(0, forceUnit)
+	ZEND_ARG_INFO(0, format)
+	ZEND_ARG_INFO(0, si)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_reduceslashes, 0, 0, 1)
+	ZEND_ARG_INFO(0, str)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_concat, 0, 0, 3)
+	ZEND_ARG_INFO(0, separator)
+	ZEND_ARG_INFO(0, strA)
+	ZEND_ARG_INFO(0, strB)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_underscore, 0, 0, 1)
+	ZEND_ARG_INFO(0, str)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_text_humanize, 0, 0, 1)
+	ZEND_ARG_INFO(0, str)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry phalcon_text_method_entry[] = {
 	PHP_ME(Phalcon_Text, camelize, arginfo_phalcon_text_camelize, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Text, uncamelize, arginfo_phalcon_text_uncamelize, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
@@ -90,6 +120,11 @@ static const zend_function_entry phalcon_text_method_entry[] = {
 	PHP_ME(Phalcon_Text, endsWith, arginfo_phalcon_text_endswith, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Text, lower, arginfo_phalcon_text_lower, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Text, upper, arginfo_phalcon_text_upper, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Text, bytes, arginfo_phalcon_text_bytes, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Text, reduceSlashes, arginfo_phalcon_text_reduceslashes, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Text, concat, arginfo_phalcon_text_concat, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Text, underscore, arginfo_phalcon_text_underscore, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Text, humanize, arginfo_phalcon_text_humanize, ZEND_ACC_STATIC|ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -336,4 +371,254 @@ PHP_METHOD(Phalcon_Text, upper){
 	}
 
 	phalcon_fast_strtoupper(return_value, str);
+}
+
+/**
+ * Returns human readable sizes
+ *
+ * @param int $size
+ * @param string $forceUnit
+ * @param string $format
+ * @param boolean $si
+ * @return string
+ */
+PHP_METHOD(Phalcon_Text, bytes){
+
+	zval *z_size, *z_force_unit = NULL, *format = NULL, *si = NULL;
+	char *force_unit;
+	const char **units;
+	const char *units1[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+	const char *units2[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+	double size;
+	int mod, power = 0, found = 0, i, j = 0;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 3, &z_size, &z_force_unit, &format, &si);
+
+	PHALCON_SEPARATE_PARAM(z_size);
+	convert_to_double(z_size);
+
+	size = Z_DVAL_P(z_size);
+
+	if (!z_force_unit) {
+		PHALCON_INIT_VAR(z_force_unit);
+	} else {
+		PHALCON_SEPARATE_PARAM(z_force_unit);
+		convert_to_string(z_force_unit);
+	}
+
+	if (!format) {
+		PHALCON_INIT_VAR(format);
+	} else {
+		PHALCON_SEPARATE_PARAM(format);
+		convert_to_string(format);
+	}
+		
+	if (PHALCON_IS_EMPTY(format)) {
+		PHALCON_INIT_NVAR(format);
+		ZVAL_STRING(format, "%01.2f %s", 1);
+	}
+
+	if (!si) {
+		si = PHALCON_GLOBAL(z_true);
+	}
+
+	if (!zend_is_true(si) || (!PHALCON_IS_EMPTY(z_force_unit) && phalcon_memnstr_str(z_force_unit, SL("i")))) {
+		units = units2;
+		mod = 1024;
+	} else {
+		units = units1;
+		mod = 1000;
+	}
+
+	if (!PHALCON_IS_EMPTY(z_force_unit)) {
+		force_unit = Z_STRVAL_P(z_force_unit);
+		for (i = 0; i < sizeof(units); i++)
+		{
+			if (strcasecmp(force_unit, units[i]) == 0) {
+				found = 1;
+				power = i;
+				break;
+			}
+		}
+	}
+
+	if (found) {
+		while(j < power) {
+			size /= mod;
+			j++;
+		}
+	} else {
+		while(size > mod) {
+			size /= mod;
+			power++;
+		}
+	}
+
+	PHALCON_INIT_NVAR(z_size);
+	ZVAL_DOUBLE(z_size, size);
+
+	PHALCON_INIT_NVAR(z_force_unit);
+	ZVAL_STRING(z_force_unit, units[power], 1);
+
+	PHALCON_RETURN_CALL_FUNCTION("sprintf", format, z_size, z_force_unit);
+
+	RETURN_MM();
+}
+
+/**
+ * Reduces multiple slashes in a string to single slashes
+ *
+ * <code>
+ *    echo Phalcon\Text::reduceSlashes("foo//bar/baz"); // foo/bar/baz
+ *    echo Phalcon\Text::reduceSlashes("http://foo.bar///baz/buz"); // http://foo.bar/baz/buz
+ * </code>
+ */
+PHP_METHOD(Phalcon_Text, reduceSlashes){
+
+	zval *str, *pattern, *replacement;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 0, &str);
+
+	PHALCON_INIT_VAR(pattern);
+	ZVAL_STRING(pattern, "#(?<!:)//+#", 1);
+
+	PHALCON_INIT_VAR(replacement);
+	ZVAL_STRING(replacement, "/", 1);
+
+	PHALCON_RETURN_CALL_FUNCTION("preg_replace", pattern, replacement, str);
+
+	RETURN_MM();
+}
+
+/**
+ * Concatenates strings using the separator only once without duplication in places concatenation
+ *
+ * <code>
+ *    $str = Phalcon\Text::concat("/", "/tmp/", "/folder_1/", "/folder_2", "folder_3/");
+ *    echo $str; // /tmp/folder_1/folder_2/folder_3/
+ * </code>
+ *
+ * @param string separator
+ * @param string a
+ * @param string b
+ * @param string ...N
+ */
+PHP_METHOD(Phalcon_Text, concat){
+
+	zval *separator, *a, *b;
+	zval *arg_num = NULL, *arg_list = NULL, *offset, *args = NULL;
+	zval *c = NULL, *a_trimmed = NULL, *b_trimmed = NULL, *c_trimmed = NULL, *tmp = NULL;
+	HashTable *ah0;
+	HashPosition hp0;
+	zval **hd;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 3, 0, &separator, &a, &b);
+
+	PHALCON_CALL_FUNCTION(&arg_num, "func_num_args");
+
+	if (Z_LVAL_P(arg_num) > 3) {
+		PHALCON_CALL_FUNCTION(&arg_list, "func_get_args");
+
+		PHALCON_INIT_VAR(offset);
+		ZVAL_LONG(offset, 3);
+
+		PHALCON_CALL_FUNCTION(&args, "array_slice", arg_list, offset);
+
+		phalcon_is_iterable(args, &ah0, &hp0, 0, 0);
+
+		while (zend_hash_get_current_data_ex(ah0, (void**) &hd, &hp0) == SUCCESS) {
+
+			PHALCON_GET_HVALUE(c);
+
+			PHALCON_INIT_NVAR(b_trimmed);
+			phalcon_fast_trim(b_trimmed, b, separator, PHALCON_TRIM_RIGHT TSRMLS_CC);
+
+			PHALCON_INIT_NVAR(c_trimmed);
+			phalcon_fast_trim(c_trimmed, c, separator, PHALCON_TRIM_LEFT TSRMLS_CC);
+
+			PHALCON_INIT_NVAR(tmp);
+			PHALCON_CONCAT_VVV(tmp, b_trimmed, separator, c_trimmed)
+
+			PHALCON_CPY_WRT(b, tmp);
+
+			zend_hash_move_forward_ex(ah0, &hp0);
+		}
+	}
+
+	PHALCON_INIT_NVAR(a_trimmed);
+	phalcon_fast_trim(a_trimmed, a, separator, PHALCON_TRIM_RIGHT TSRMLS_CC);
+
+	PHALCON_INIT_NVAR(b_trimmed);
+	phalcon_fast_trim(b_trimmed, b, separator, PHALCON_TRIM_LEFT TSRMLS_CC);
+
+	PHALCON_INIT_NVAR(tmp);
+	PHALCON_CONCAT_VVV(tmp, a_trimmed, separator, b_trimmed)
+
+	RETURN_CTOR(tmp);
+}
+
+/**
+ * Makes a phrase underscored instead of spaced
+ *
+ * <code>
+ *   echo Phalcon\Text::underscore('look behind'); // 'look_behind'
+ *   echo Phalcon\Text::underscore('Awesome Phalcon'); // 'Awesome_Phalcon'
+ * </code>
+ */
+PHP_METHOD(Phalcon_Text, underscore){
+
+	zval *str, *trimmed, *pattern, *replacement;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 0, &str);
+
+	PHALCON_INIT_VAR(trimmed);
+	phalcon_fast_trim(trimmed, str, NULL, PHALCON_TRIM_BOTH TSRMLS_CC);
+
+	PHALCON_INIT_VAR(pattern);
+	ZVAL_STRING(pattern, "#\\s+#", 1);
+
+	PHALCON_INIT_VAR(replacement);
+	ZVAL_STRING(replacement, "_", 1);
+
+	PHALCON_RETURN_CALL_FUNCTION("preg_replace", pattern, replacement, trimmed);
+
+	RETURN_MM();
+}
+
+/**
+ * Makes an underscored or dashed phrase human-readable
+ *
+ * <code>
+ *   echo Phalcon\Text::humanize('start-a-horse'); // 'start a horse'
+ *   echo Phalcon\Text::humanize('five_cats'); // 'five cats'
+ * </code>
+ */
+PHP_METHOD(Phalcon_Text, humanize){
+
+	zval *str, *trimmed, *pattern, *replacement;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 0, &str);
+
+	PHALCON_INIT_VAR(trimmed);
+	phalcon_fast_trim(trimmed, str, NULL, PHALCON_TRIM_BOTH TSRMLS_CC);
+
+	PHALCON_INIT_VAR(pattern);
+	ZVAL_STRING(pattern, "#[_-]+#", 1);
+
+	PHALCON_INIT_VAR(replacement);
+	ZVAL_STRING(replacement, " ", 1);
+
+	PHALCON_RETURN_CALL_FUNCTION("preg_replace", pattern, replacement, trimmed);
+
+	RETURN_MM();
 }

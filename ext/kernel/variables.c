@@ -18,6 +18,7 @@
 */
 
 #include "kernel/variables.h"
+#include "kernel/memory.h"
 
 #include <ext/standard/php_smart_str.h>
 #include <ext/standard/php_var.h>
@@ -66,7 +67,7 @@ void phalcon_unserialize(zval *return_value, zval *var TSRMLS_DC) {
 	PHP_VAR_UNSERIALIZE_INIT(var_hash);
 	if (!php_var_unserialize(&return_value, &p, p + Z_STRLEN_P(var), &var_hash TSRMLS_CC)) {
 		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
-		zval_dtor(return_value);
+		phalcon_dtor(return_value);
 		ZVAL_NULL(return_value);
 		if (!EG(exception)) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Error at offset %ld of %d bytes", (long)((char*)p - Z_STRVAL_P(var)), Z_STRLEN_P(var));
@@ -75,4 +76,30 @@ void phalcon_unserialize(zval *return_value, zval *var TSRMLS_DC) {
 	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 
+}
+
+/**
+ * var_export outputs php variables without using the PHP userland
+ */
+void phalcon_var_export(zval **var TSRMLS_DC) {
+    php_var_export(var, 1 TSRMLS_CC);
+}
+
+/**
+ * var_export returns php variables without using the PHP userland
+ */
+void phalcon_var_export_ex(zval *return_value, zval **var TSRMLS_DC) {
+
+    smart_str buf = { NULL, 0, 0 };
+
+    php_var_export_ex(var, 1, &buf TSRMLS_CC);
+    smart_str_0(&buf);
+    ZVAL_STRINGL(return_value, buf.c, buf.len, 0);
+}
+
+/**
+ * var_dump outputs php variables without using the PHP userland
+ */
+void phalcon_var_dump(zval **var TSRMLS_DC) {
+    php_var_dump(var, 1 TSRMLS_CC);
 }

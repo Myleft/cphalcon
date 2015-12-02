@@ -90,7 +90,7 @@
 			<file>unit-tests/ViewSimpleTest.php</file>
 
 			<!-- Other components -->
-			<file>unit-tests/ControllersTest.php</file>
+			<!-- <file>unit-tests/ControllersTest.php</file> -->
 			<file>unit-tests/SessionTest.php</file>
 			<file>unit-tests/SessionBagTest.php</file>
 			<file>unit-tests/PaginatorTest.php</file>
@@ -120,6 +120,12 @@
 
 			<!-- Image -->
 			<file>unit-tests/ImageTest.php</file>
+
+			<!-- Http -->
+			<file>unit-tests/HttpClientTest.php</file>
+
+			<!-- Filter -->
+			<file>unit-tests/FilterTest.php</file>
 
 			<file>unit-tests/Issue1801.php</file>
 		</testsuite>

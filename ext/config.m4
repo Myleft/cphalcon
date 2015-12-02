@@ -1,4 +1,13 @@
 PHP_ARG_ENABLE(phalcon, whether to enable phalcon framework, [ --enable-phalcon   Enable phalcon framework])
+PHP_ARG_WITH(non-free, wheter to enable non-free css and js minifier, [ --without-non-free Disable non-free minifiers], yes, no)
+
+AC_MSG_CHECKING([Include non-free minifiers])
+if test "$PHP_NON_FREE" = "yes"; then
+	AC_DEFINE([PHALCON_NON_FREE], [1], [Whether non-free minifiers are available])
+	AC_MSG_RESULT([yes, css and js])
+else
+	AC_MSG_RESULT([no])
+fi
 
 if test "$PHP_PHALCON" = "yes"; then
 	AC_DEFINE(HAVE_PHALCON, 1, [Whether you have Phalcon Framework])
@@ -25,6 +34,11 @@ kernel/variables.c \
 kernel/framework/orm.c \
 kernel/framework/router.c \
 kernel/framework/url.c \
+kernel/assert.c \
+kernel/exit.c \
+kernel/iterator.c \
+kernel/math.c \
+kernel/time.c \
 interned-strings.c \
 logger.c \
 flash.c \
@@ -93,6 +107,7 @@ http/response/headers.c \
 http/response/cookiesinterface.c \
 http/response/headersinterface.c \
 http/uri.c \
+http/client.c \
 http/client/exception.c \
 http/client/header.c \
 http/client/response.c \
@@ -109,6 +124,8 @@ text.c \
 arr.c \
 date.c \
 debug.c \
+debug/exception.c \
+debug/dump.c \
 tag.c \
 mvc/controller.c \
 mvc/dispatcher/exception.c \
@@ -127,6 +144,8 @@ mvc/collection/exception.c \
 mvc/collection/document.c \
 mvc/collection/messageinterface.c \
 mvc/collection/message.c \
+mvc/collection/gridfs.c \
+mvc/collection/resultset.c \
 mvc/routerinterface.c \
 mvc/urlinterface.c \
 mvc/user/component.c \
@@ -154,6 +173,8 @@ mvc/view/exception.c \
 mvc/view/engineinterface.c \
 mvc/view/simple.c \
 mvc/view/engine.c \
+mvc/view/model.c \
+mvc/view/modelinterface.c \
 mvc/application.c \
 mvc/controllerinterface.c \
 mvc/moduledefinitioninterface.c \
@@ -166,6 +187,9 @@ mvc/model/metadata/memory.c \
 mvc/model/metadata/session.c \
 mvc/model/metadata/memcache.c \
 mvc/model/metadata/libmemcached.c \
+mvc/model/metadata/redis.c \
+mvc/model/metadata/mongo.c \
+mvc/model/metadata/cache.c \
 mvc/model/transaction.c \
 mvc/model/validatorinterface.c \
 mvc/model/metadata.c \
@@ -208,6 +232,7 @@ mvc/model/resultset/complex.c \
 mvc/model/resultset/simple.c \
 mvc/model/behavior/timestampable.c \
 mvc/model/behavior/softdelete.c \
+mvc/model/behavior/nestedset.c \
 mvc/model/validator.c \
 mvc/model/metadatainterface.c \
 mvc/model/relationinterface.c \
@@ -218,11 +243,14 @@ mvc/jsonrpc/exception.c \
 jsonrpc/client.c \
 jsonrpc/client/exception.c \
 jsonrpc/client/response.c \
+config.c \
+config/adapter.c \
+config/adapterinterface.c \
+config/exception.c \
 config/adapter/ini.c \
 config/adapter/json.c \
 config/adapter/php.c \
 config/adapter/yaml.c \
-config/exception.c \
 filterinterface.c \
 logger/multiple.c \
 logger/formatter/firephp.c \
@@ -300,12 +328,12 @@ session/adapter/libmemcached.c \
 diinterface.c \
 escaper.c \
 crypt/exception.c \
-config.c \
 events/managerinterface.c \
 events/manager.c \
 events/event.c \
 events/exception.c \
 events/eventsawareinterface.c \
+events/listener.c \
 escaperinterface.c \
 validation.c \
 version.c \
@@ -326,6 +354,7 @@ di/exception.c \
 di/injectionawareinterface.c \
 di/service.c \
 security.c \
+security/random.c \
 annotations/reflection.c \
 annotations/annotation.c \
 annotations/readerinterface.c \
@@ -362,9 +391,8 @@ validation/validator/inclusionin.c \
 validation/validator/stringlength.c \
 validation/validator/url.c \
 validation/validator/file.c \
+validation/validator/numericality.c \
 validation/validator.c \
-assets/filters/jsminifier.c \
-assets/filters/cssminifier.c \
 mvc/model/query/parser.c \
 mvc/model/query/scanner.c \
 mvc/view/engine/volt/parser.c \
@@ -394,7 +422,19 @@ psr/log/loggerinterface.c \
 psr/log/loggertrait.c \
 psr/log/loglevel.c \
 psr/log/nulllogger.c \
+chart/qrcode.c \
+chart/captcha.c \
+chart/exception.c \
+scws.c \
+async.c \
 registry.c"
+
+	AC_MSG_CHECKING([Include non-free minifiers])
+	if test "$PHP_NON_FREE" = "yes"; then
+		phalcon_sources="$phalcon_sources assets/filters/jsminifier.c assets/filters/cssminifier.c "
+	else
+		phalcon_sources="$phalcon_sources assets/filters/nojsminifier.c assets/filters/nocssminifier.c "
+	fi
 
 	PHP_NEW_EXTENSION(phalcon, $phalcon_sources, $ext_shared)
 	PHP_ADD_EXTENSION_DEP([phalcon], [spl])
@@ -431,22 +471,16 @@ registry.c"
 		[[#include "php_config.h"]]
 	)
 
-	AC_CHECK_DECL(
-		[HAVE_JSON],
+	AC_CHECK_HEADERS(
+		[ext/json/php_json.h],
 		[
-			AC_CHECK_HEADERS(
-				[ext/json/php_json.h],
-				[
-					PHP_ADD_EXTENSION_DEP([phalcon], [json])
-					AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
-				],
-				,
-				[[#include "main/php.h"]]
-			)
+			PHP_ADD_EXTENSION_DEP([phalcon], [json])
+			AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
 		],
 		,
-		[[#include "php_config.h"]]
+		[[#include "main/php.h"]]
 	)
+
 
 	AC_CHECK_DECL(
 		[HAVE_PHP_SESSION],
@@ -483,6 +517,105 @@ registry.c"
 	)
 
 	CPPFLAGS=$old_CPPFLAGS
+
+	for i in /usr/local /usr; do
+		if test -r $i/include/png.h; then
+			PNG_CFLAGS=`pkg-config --cflags libpng`
+			PNG_LDFLAGS=`pkg-config --libs libpng`
+
+			PHP_ADD_INCLUDE($i/include)
+
+			CPPFLAGS="${CPPFLAGS} ${PNG_CFLAGS}"
+			EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${PNG_LDFLAGS}"
+
+			AC_MSG_RESULT("libpng found")
+
+			AC_DEFINE([PHALCON_USE_PNG], [1], [Have libpng support])
+			break
+		fi
+	done
+
+	if test -n "$PNG_CFLAGS"; then
+		for i in /usr/local /usr; do
+			if test -r $i/include/qrencode.h; then
+				QR_CFLAGS=`pkg-config --cflags libqrencode`
+				QR_LDFLAGS=`pkg-config --libs libqrencode`
+
+				PHP_ADD_INCLUDE($i/include)
+
+				CPPFLAGS="${CPPFLAGS} ${QR_CFLAGS}"
+				EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${QR_LDFLAGS}"
+
+				AC_MSG_RESULT("libqrencode found")
+
+				AC_DEFINE([PHALCON_USE_QRENCODE], [1], [Have libqrencode support])
+				break
+			fi
+		done
+	else
+		AC_MSG_RESULT([libpng not found])
+	fi
+
+	for i in /usr/local /usr; do
+		if test -r $i/bin/MagickWand-config; then
+			WAND_BINARY=$i/bin/MagickWand-config
+
+			WAND_CFLAGS=`$WAND_BINARY --cflags`
+			WAND_LDFLAGS=`$WAND_BINARY --libs`
+
+			PHP_ADD_INCLUDE($i/include)
+
+			CPPFLAGS="${CPPFLAGS} ${WAND_CFLAGS}"
+			EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${WAND_LDFLAGS}"
+
+			AC_DEFINE([PHALCON_USE_MAGICKWAND], [1], [Have ImageMagick MagickWand support])
+			break
+		fi
+	done
+
+	if test -r "$WAND_BINARY"; then
+		for i in /usr/local /usr; do
+			if test -r $i/include/zbar.h; then
+				ZBAR_CFLAGS=`pkg-config --cflags zbar`
+				ZBAR_LDFLAGS=`pkg-config --libs zbar`
+
+				PHP_ADD_INCLUDE($i/include)
+
+				CPPFLAGS="${CPPFLAGS} ${ZBAR_CFLAGS}"
+				EXTRA_LDFLAGS="${EXTRA_LDFLAGS} ${ZBAR_LDFLAGS}"
+
+				AC_MSG_RESULT("libzbar found")
+
+				AC_DEFINE([PHALCON_USE_ZBAR], [1], [Have libzbar support])
+				break
+			fi
+		done
+	fi
+
+	AC_MSG_CHECKING([for scws.h])
+	for i in /usr/local /usr/local/include/scws /usr; do
+		if test -r $i/include/scws/scws.h; then
+			AC_MSG_RESULT([yes, found in $i])
+
+			PHP_ADD_INCLUDE($i/include)
+
+			PHP_CHECK_LIBRARY(scws, scws_new,
+			[
+				PHP_ADD_LIBRARY_WITH_PATH(scws, $i/lib, PHALCON_SHARED_LIBADD)
+				PHP_SUBST(PHALCON_SHARED_LIBADD)
+
+				AC_DEFINE(PHALCON_USE_SCWS,1,[Have libscws support])
+			],[
+				AC_MSG_ERROR([Incorrect scws library])
+			],[
+				-L$i/lib -lm
+			])
+
+			break
+		else
+			AC_MSG_RESULT([no, found in $i])
+		fi
+	done
 
 	PHP_ADD_MAKEFILE_FRAGMENT([Makefile.frag])
 fi

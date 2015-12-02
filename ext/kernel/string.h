@@ -1,4 +1,3 @@
-
 /*
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
@@ -29,9 +28,15 @@
 /** Fast char position */
 int phalcon_memnstr(const zval *haystack, const zval *needle);
 int phalcon_memnstr_str(const zval *haystack, char *needle, unsigned int needle_length);
+int phalcon_same_name(const char *key, const char *name, zend_uint name_len);
+
+void phalcon_strtr(zval *return_value, zval *str, zval *str_from, zval *str_to TSRMLS_DC);
+void phalcon_strtr_array(zval *return_value, zval *str, zval *replace_pairs TSRMLS_DC);
+void phalcon_strtr_str(zval *return_value, zval *str, char *str_from, unsigned int str_from_length, char *str_to, unsigned int str_to_length TSRMLS_DC);
 
 /** Function replacement */
 void phalcon_fast_strlen(zval *return_value, zval *str);
+int phalcon_fast_strlen_ev(zval *str);
 void phalcon_fast_strtolower(zval *return_value, zval *str);
 void phalcon_strtolower_inplace(zval *s);
 void phalcon_fast_join(zval *result, zval *glue, zval *pieces TSRMLS_DC);
@@ -42,7 +47,7 @@ void phalcon_fast_strpos(zval *return_value, const zval *haystack, const zval *n
 void phalcon_fast_strpos_str(zval *return_value, const zval *haystack, char *needle, unsigned int needle_length);
 void phalcon_fast_stripos_str(zval *return_value, zval *haystack, char *needle, unsigned int needle_length);
 void phalcon_fast_str_replace(zval *return_value, zval *search, zval *replace, zval *subject);
-void phalcon_fast_trim(zval *return_value, zval *str, int where TSRMLS_DC);
+void phalcon_fast_trim(zval *return_value, zval *str, zval *charlist, int where TSRMLS_DC);
 void phalcon_fast_strip_tags(zval *return_value, zval *str);
 void phalcon_fast_strtoupper(zval *return_value, zval *str);
 
@@ -56,6 +61,10 @@ int phalcon_start_with_str(const zval *str, char *compared, unsigned int compare
 int phalcon_start_with_str_str(char *str, unsigned int str_length, char *compared, unsigned int compared_length);
 int phalcon_end_with(const zval *str, const zval *compared, zval *case_sensitive);
 int phalcon_end_with_str(const zval *str, char *compared, unsigned int compared_length);
+
+/** Compare */
+int phalcon_comparestr(const zval *str, const zval *compared, zval *case_sensitive);
+int phalcon_comparestr_str(const zval *str, char *compared, unsigned int compared_length, zval *case_sensitive);
 
 /** Random string */
 void phalcon_random_string(zval *return_value, const zval *type, const zval *length TSRMLS_DC);
@@ -72,6 +81,8 @@ int phalcon_spprintf(char **message, int max_len, char *format, ...);
 /* Substr */
 void phalcon_substr(zval *return_value, zval *str, unsigned long from, unsigned long length);
 
+/** EOL */
+zval *phalcon_eol(int eol TSRMLS_DC);
 /** Preg-Match */
 int phalcon_preg_match(zval *return_value, zval *regex, zval *subject, zval *matches TSRMLS_DC) PHALCON_ATTR_WARN_UNUSED_RESULT;
 
@@ -81,6 +92,7 @@ void phalcon_base64_decode(zval *return_value, zval *data);
 
 /** Hash */
 void phalcon_md5(zval *return_value, zval *str);
+void phalcon_crc32(zval *return_value, zval *str TSRMLS_DC);
 
 /** JSON */
 int phalcon_json_encode(zval *return_value, zval *v, int opts TSRMLS_DC) PHALCON_ATTR_WARN_UNUSED_RESULT;
@@ -96,5 +108,7 @@ void phalcon_strval(zval *return_value, zval *v);
 void phalcon_date(zval *return_value, zval *format, zval *timestamp TSRMLS_DC);
 void phalcon_addslashes(zval *return_value, zval *str TSRMLS_DC);
 void phalcon_add_trailing_slash(zval** v);
+void phalcon_stripslashes(zval *return_value, zval *str TSRMLS_DC);
+void phalcon_stripcslashes(zval *return_value, zval *str TSRMLS_DC);
 
 #endif /* PHALCON_KERNEL_STRING_H */

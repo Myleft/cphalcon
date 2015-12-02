@@ -52,12 +52,14 @@
  */
 zend_class_entry *phalcon_filter_ce;
 
+PHP_METHOD(Phalcon_Filter, __construct);
 PHP_METHOD(Phalcon_Filter, add);
 PHP_METHOD(Phalcon_Filter, sanitize);
 PHP_METHOD(Phalcon_Filter, _sanitize);
 PHP_METHOD(Phalcon_Filter, getFilters);
 
 static const zend_function_entry phalcon_filter_method_entry[] = {
+	PHP_ME(Phalcon_Filter, __construct, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(Phalcon_Filter, add, arginfo_phalcon_filterinterface_add, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Filter, sanitize, arginfo_phalcon_filterinterface_sanitize, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Filter, _sanitize, NULL, ZEND_ACC_PROTECTED)
@@ -73,10 +75,75 @@ PHALCON_INIT_CLASS(Phalcon_Filter){
 	PHALCON_REGISTER_CLASS(Phalcon, Filter, filter, phalcon_filter_method_entry, 0);
 
 	zend_declare_property_null(phalcon_filter_ce, SL("_filters"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_filter_ce, SL("_allowTags"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_filter_ce, SL("_allowAttributes"), ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	zend_class_implements(phalcon_filter_ce TSRMLS_CC, 1, phalcon_filterinterface_ce);
 
 	return SUCCESS;
+}
+
+/**
+ * Phalcon\Filter constructor
+ */
+PHP_METHOD(Phalcon_Filter, __construct){
+
+	zval *allow_tags, *allow_attributes;
+
+	PHALCON_MM_GROW();
+
+	PHALCON_INIT_VAR(allow_tags);
+	array_init(allow_tags);
+
+	phalcon_array_append_string(&allow_tags, SL("a"), 0);
+	phalcon_array_append_string(&allow_tags, SL("img"), 0);
+	phalcon_array_append_string(&allow_tags, SL("br"), 0);
+	phalcon_array_append_string(&allow_tags, SL("hr"), 0);
+	phalcon_array_append_string(&allow_tags, SL("strong"), 0);
+	phalcon_array_append_string(&allow_tags, SL("b"), 0);
+	phalcon_array_append_string(&allow_tags, SL("code"), 0);
+	phalcon_array_append_string(&allow_tags, SL("pre"), 0);
+	phalcon_array_append_string(&allow_tags, SL("p"), 0);
+	phalcon_array_append_string(&allow_tags, SL("div"), 0);
+	phalcon_array_append_string(&allow_tags, SL("u"), 0);
+	phalcon_array_append_string(&allow_tags, SL("i"), 0);
+	phalcon_array_append_string(&allow_tags, SL("em"), 0);
+	phalcon_array_append_string(&allow_tags, SL("span"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h1"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h2"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h3"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h4"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h5"), 0);
+	phalcon_array_append_string(&allow_tags, SL("h6"), 0);
+	phalcon_array_append_string(&allow_tags, SL("ul"), 0);
+	phalcon_array_append_string(&allow_tags, SL("ol"), 0);
+	phalcon_array_append_string(&allow_tags, SL("li"), 0);
+	phalcon_array_append_string(&allow_tags, SL("table"), 0);
+	phalcon_array_append_string(&allow_tags, SL("tr"), 0);
+	phalcon_array_append_string(&allow_tags, SL("th"), 0);
+	phalcon_array_append_string(&allow_tags, SL("td"), 0);
+
+	phalcon_update_property_this(this_ptr, SL("_allowTags"), allow_tags TSRMLS_CC);
+
+	PHALCON_INIT_VAR(allow_attributes);
+	array_init(allow_attributes);
+
+	phalcon_array_append_string(&allow_attributes, SL("id"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("name"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("title"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("alt"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("src"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("style"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("href"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("class"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("width"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("height"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("target"), 0);
+	phalcon_array_append_string(&allow_attributes, SL("align"), 0);
+
+	phalcon_update_property_this(this_ptr, SL("_allowAttributes"), allow_attributes TSRMLS_CC);
+
+	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -94,8 +161,8 @@ PHP_METHOD(Phalcon_Filter, add){
 
 	PHALCON_ENSURE_IS_STRING(name);
 	
-	if (Z_TYPE_PP(handler) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STRW(phalcon_filter_exception_ce, "Filter must be an object");
+	if (Z_TYPE_PP(handler) != IS_OBJECT && !phalcon_is_callable(*handler TSRMLS_CC)) {
+		PHALCON_THROW_EXCEPTION_STRW(phalcon_filter_exception_ce, "Filter must be an object or callable");
 		return;
 	}
 	
@@ -156,7 +223,7 @@ PHP_METHOD(Phalcon_Filter, sanitize){
 						PHALCON_GET_HVALUE(item_value);
 	
 						PHALCON_CALL_METHOD(&filter_value, this_ptr, "_sanitize", item_value, filter);
-						phalcon_array_update_zval(&array_value, item_key, filter_value, PH_COPY | PH_SEPARATE);
+						phalcon_array_update_zval(&array_value, item_key, filter_value, PH_COPY);
 	
 						zend_hash_move_forward_ex(ah1, &hp1);
 					}
@@ -214,6 +281,7 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 
 	zval *value, *filter, *filters, *filter_object;
 	zval *arguments, *type = NULL, *quote, *empty_str, *escaped;
+	zval *allow_tags, *allow_attributes;
 	zval *filtered = NULL, *allow_fraction, *options, *exception_message;
 
 	PHALCON_MM_GROW();
@@ -222,15 +290,16 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 	
 	PHALCON_OBS_VAR(filters);
 	phalcon_read_property_this(&filters, this_ptr, SL("_filters"), PH_NOISY TSRMLS_CC);
-	if (phalcon_array_isset_fetch(&filter_object, filters, filter) && Z_TYPE_P(filter_object) == IS_OBJECT) {
+	if (phalcon_array_isset_fetch(&filter_object, filters, filter) && (Z_TYPE_P(filter_object) == IS_OBJECT || phalcon_is_callable(filter_object TSRMLS_CC))) {
 	
 		/** 
 		 * If the filter is a closure we call it in the PHP userland
 		 */
-		if (instanceof_function(Z_OBJCE_P(filter_object), zend_ce_closure TSRMLS_CC)) {
+		if (phalcon_is_callable(filter_object TSRMLS_CC) ||
+			(Z_TYPE_P(filter_object) == IS_OBJECT && instanceof_function(Z_OBJCE_P(filter_object), zend_ce_closure TSRMLS_CC))) {
 			PHALCON_INIT_VAR(arguments);
 			array_init_size(arguments, 1);
-			phalcon_array_append(&arguments, value, 0);
+			phalcon_array_append(&arguments, value, PH_COPY);
 			PHALCON_CALL_USER_FUNC_ARRAY(return_value, filter_object, arguments);
 			RETURN_MM();
 		}
@@ -271,6 +340,31 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 		goto ph_end_0;
 	}
 	
+	if (PHALCON_IS_STRING(filter, "int!")) {
+		PHALCON_INIT_NVAR(filtered);
+		ZVAL_ZVAL(filtered, value, 1, 0);
+		convert_to_long_base(filtered, 10);
+		goto ph_end_0;
+	}
+	
+	if (PHALCON_IS_STRING(filter, "abs")) {	
+		convert_scalar_to_number_ex(&value);
+	
+		PHALCON_INIT_NVAR(filtered);
+		if (Z_TYPE_P(value) == IS_DOUBLE) {
+			ZVAL_DOUBLE(filtered, fabs(Z_DVAL_P(value)));
+		} else if (Z_DVAL_P(value) == IS_LONG) {
+			if (Z_DVAL_P(value) == LONG_MIN) {
+				ZVAL_DOUBLE(filtered, -(double)LONG_MIN);
+			} else {
+				ZVAL_LONG(filtered, Z_LVAL_P(value) < 0 ? -Z_LVAL_P(value) : Z_LVAL_P(value));
+			}
+		} else {
+			ZVAL_FALSE(filtered);
+		}
+		goto ph_end_0;
+	}
+	
 	if (PHALCON_IS_STRING(filter, "string")) {
 		PHALCON_INIT_NVAR(type);
 		ZVAL_LONG(type, 513); /* FILTER_SANITIZE_STRING */
@@ -284,16 +378,23 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 		 * The 'float' filter uses the filter extension
 		 */
 		PHALCON_INIT_VAR(allow_fraction);
-		ZVAL_LONG(allow_fraction, 4096);
+		ZVAL_LONG(allow_fraction, 4096); /* FILTER_FLAG_ALLOW_FRACTION */
 	
 		PHALCON_INIT_VAR(options);
 		array_init_size(options, 1);
 		phalcon_array_update_string(&options, SL("flags"), allow_fraction, PH_COPY);
 	
 		PHALCON_INIT_NVAR(type);
-		ZVAL_LONG(type, 520);
+		ZVAL_LONG(type, 520); /* FILTER_SANITIZE_NUMBER_FLOAT */
 	
 		PHALCON_CALL_FUNCTION(&filtered, "filter_var", value, type, options);
+		goto ph_end_0;
+	}
+	
+	if (PHALCON_IS_STRING(filter, "float!")) {
+		PHALCON_INIT_NVAR(filtered);
+		ZVAL_ZVAL(filtered, value, 1, 0);
+		convert_to_double(filtered);
 		goto ph_end_0;
 	}
 	
@@ -305,7 +406,7 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 	
 	if (PHALCON_IS_STRING(filter, "trim")) {
 		PHALCON_INIT_NVAR(filtered);
-		phalcon_fast_trim(filtered, value, PHALCON_TRIM_BOTH TSRMLS_CC);
+		phalcon_fast_trim(filtered, value, NULL, PHALCON_TRIM_BOTH TSRMLS_CC);
 		goto ph_end_0;
 	}
 	
@@ -340,6 +441,18 @@ PHP_METHOD(Phalcon_Filter, _sanitize){
 			PHALCON_INIT_NVAR(filtered);
 			phalcon_fast_strtoupper(filtered, value);
 		}
+		goto ph_end_0;
+	}
+	
+	if (PHALCON_IS_STRING(filter, "xssclean")) {
+		PHALCON_OBS_VAR(allow_tags);
+		phalcon_read_property_this(&allow_tags, this_ptr, SL("_allowTags"), PH_NOISY TSRMLS_CC);
+
+		PHALCON_OBS_VAR(allow_attributes);
+		phalcon_read_property_this(&allow_attributes, this_ptr, SL("_allowAttributes"), PH_NOISY TSRMLS_CC);
+
+		PHALCON_INIT_NVAR(filtered);
+		phalcon_xss_clean(filtered, value, allow_tags, allow_attributes TSRMLS_CC);
 		goto ph_end_0;
 	}
 	

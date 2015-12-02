@@ -34,17 +34,26 @@
 /** Main macros */
 #define PH_DEBUG 0
 
-#define PH_NOISY 0
-#define PH_SILENT 1
+#define PH_NOISY 256
+#define PH_SILENT 1024
+#define PH_READONLY 4096
+
+#define PH_NOISY_CC PH_NOISY TSRMLS_CC
+#define PH_SILENT_CC PH_SILENT TSRMLS_CC
 
 #define PH_SEPARATE 256
 #define PH_COPY 1024
+#define PH_CTOR 4096
 
 #define SL(str)   ZEND_STRL(str)
 #define SS(str)   ZEND_STRS(str)
 #define ISL(str)  (phalcon_interned_##str), (sizeof(#str)-1)
 #define ISS(str)  (phalcon_interned_##str), (sizeof(#str))
 
+/* str_erealloc is PHP 5.6 only */
+#ifndef str_erealloc
+#define str_erealloc erealloc
+#endif
 
 /* Startup functions */
 void php_phalcon_init_globals(zend_phalcon_globals *phalcon_globals TSRMLS_DC);
@@ -86,17 +95,6 @@ int phalcon_fast_count_ev(zval *array TSRMLS_DC);
 /* Utils functions */
 int phalcon_is_iterable_ex(zval *arr, HashTable **arr_hash, HashPosition *hash_position, int duplicate, int reverse);
 
-/**
- * @brief destroys @c pzval if it is not @c NULL
- * @param pzval
- */
-static inline void phalcon_safe_zval_ptr_dtor(zval *pzval)
-{
-	if (pzval) {
-		zval_ptr_dtor(&pzval);
-	}
-}
-
 static inline int is_phalcon_class(const zend_class_entry *ce)
 {
 #if PHP_VERSION_ID >= 50400
@@ -129,6 +127,7 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
   Z_TYPE_P(z) = Z_TYPE_P(v);
 #endif
 
+#if PHP_VERSION_ID < 50600
 /**
  * Return zval checking if it's needed to ctor
  */
@@ -186,6 +185,47 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 #define RETURN_THISW() \
 	RETURN_ZVAL(this_ptr, 1, 0);
 
+#else
+
+/** Return zval checking if it's needed to ctor */
+#define RETURN_CCTOR(var) { \
+		RETVAL_ZVAL_FAST(var); \
+	} \
+	PHALCON_MM_RESTORE(); \
+	return;
+
+/** Return zval checking if it's needed to ctor, without restoring the memory stack  */
+#define RETURN_CCTORW(var) { \
+		RETVAL_ZVAL_FAST(var); \
+	} \
+	return;
+
+/** Return zval with always ctor */
+#define RETURN_CTOR(var) { \
+		RETVAL_ZVAL_FAST(var); \
+	} \
+	PHALCON_MM_RESTORE(); \
+	return;
+
+/** Return zval with always ctor, without restoring the memory stack */
+#define RETURN_CTORW(var) { \
+		RETVAL_ZVAL_FAST(var); \
+	} \
+	return;
+
+/** Return this pointer */
+#define RETURN_THIS() { \
+		RETVAL_ZVAL_FAST(this_ptr); \
+	} \
+	PHALCON_MM_RESTORE(); \
+	return;
+
+/** Return zval with always ctor, without restoring the memory stack */
+#define RETURN_THISW() \
+	RETURN_ZVAL_FAST(this_ptr);
+
+#endif
+
 /**
  * Returns variables without ctor
  */
@@ -204,11 +244,25 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 	return;
 
 /**
+ * Returns a zval in an object member
+ */
+#define RETURN_MM_MEMBER(object, member_name) \
+	phalcon_return_property_quick(return_value, NULL, object, SL(member_name), zend_inline_hash_func(SS(member_name)) TSRMLS_CC); \
+	RETURN_MM();
+
+/**
  * Returns a zval in an object member (quick)
  */
 #define RETURN_MEMBER_QUICK(object, member_name, key) \
 	phalcon_return_property_quick(return_value, NULL, object, SL(member_name), key TSRMLS_CC); \
 	return;
+
+/**
+ * Returns a zval in an object member (quick)
+ */
+#define RETURN_MM_MEMBER_QUICK(object, member_name, key) \
+	phalcon_return_property_quick(return_value, NULL, object, SL(member_name), key TSRMLS_CC); \
+	RETURN_MM();
 
 #define RETURN_ON_FAILURE(what) \
 	if (FAILURE == what) { \
@@ -224,6 +278,9 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 /** Return without change return_value */
 #define RETURN_MM() PHALCON_MM_RESTORE(); return;
 
+/** Return bool restoring memory frame */
+#define RETURN_MM_BOOL(value) RETVAL_BOOL(value); RETURN_MM();
+
 /** Return null restoring memory frame */
 #define RETURN_MM_NULL() PHALCON_MM_RESTORE(); RETURN_NULL();
 
@@ -234,6 +291,12 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 /** Return string restoring memory frame */
 #define RETURN_MM_STRING(str, copy) PHALCON_MM_RESTORE(); RETURN_STRING(str, copy);
 #define RETURN_MM_EMPTY_STRING() PHALCON_MM_RESTORE(); RETURN_EMPTY_STRING();
+
+/* Return long */
+#define RETURN_MM_LONG(value) RETVAL_LONG(value); RETURN_MM();
+
+/* Return double */
+#define RETURN_MM_DOUBLE(value) RETVAL_DOUBLE(value); RETURN_MM();
 
 /** Return empty array */
 #define RETURN_EMPTY_ARRAY() array_init(return_value); return;
@@ -250,6 +313,40 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 		PHALCON_INIT_NVAR_PNULL(var); \
 		phalcon_get_current_key(&var, hash, &hash_position TSRMLS_CC); \
 	} while (0)
+
+/** Get current hash key copying the iterator if needed */
+
+#if PHP_VERSION_ID < 50500
+
+#define PHALCON_GET_IKEY(var, it) \
+	do { \
+		int key_type; uint str_key_len; \
+		ulong int_key; \
+		char *str_key; \
+		\
+		PHALCON_INIT_NVAR(var); \
+		key_type = it->funcs->get_current_key(it, &str_key, &str_key_len, &int_key TSRMLS_CC); \
+		if (key_type == HASH_KEY_IS_STRING) { \
+			ZVAL_STRINGL(var, str_key, str_key_len - 1, 1); \
+			efree(str_key); \
+		} else { \
+			if (key_type == HASH_KEY_IS_LONG) { \
+				ZVAL_LONG(var, int_key); \
+			} else { \
+				ZVAL_NULL(var); \
+			} \
+		} \
+	} while (0)
+
+#else
+
+#define PHALCON_GET_IKEY(var, it) \
+	do { \
+		PHALCON_INIT_NVAR(var); \
+		it->funcs->get_current_key(it, var TSRMLS_CC); \
+	} while (0)
+
+#endif
 
 /** Check if an array is iterable or not */
 #define phalcon_is_iterable(var, array_hash, hash_pointer, duplicate, reverse) \
@@ -307,6 +404,26 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 		} \
 	}
 
+#if PHP_VERSION_ID < 50399
+	#define object_properties_init(object, class_type) { \
+		ALLOC_HASHTABLE_REL(object->properties); \
+		zend_hash_init(object->properties, zend_hash_num_elements(&class_type->default_properties), NULL, ZVAL_PTR_DTOR, 0); \
+		zend_hash_copy(object->properties, &class_type->default_properties, (copy_ctor_func_t) zval_add_ref, NULL, sizeof(zval *)); \
+	}
+#endif
+
+#define PHALCON_CREATE_OBJECT(obj_ptr, class_type) \
+	{ \
+		zend_object *object; \
+		PHALCON_INIT_ZVAL_NREF(obj_ptr); \
+		Z_TYPE_P(obj_ptr) = IS_OBJECT; \
+		Z_OBJVAL_P(obj_ptr) = zend_objects_new(&object, class_type TSRMLS_CC); \
+		object_properties_init(object, class_type); \
+	}
+
+#define PHALCON_MAKE_REF(obj) Z_SET_ISREF_P(obj);
+#define PHALCON_UNREF(obj) Z_UNSET_ISREF_P(obj);
+
 /** Method declaration for API generation */
 #define PHALCON_DOC_METHOD(class_name, method)
 
@@ -353,17 +470,25 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 	}
 
 #define PHALCON_VERIFY_INTERFACE_EX(instance, interface_ce, exception_ce, restore_stack) \
-	if (Z_TYPE_P(instance) != IS_OBJECT || !instanceof_function_ex(Z_OBJCE_P(instance), interface_ce, 1 TSRMLS_CC)) { \
-		if (Z_TYPE_P(instance) != IS_OBJECT) { \
-			zend_throw_exception_ex(exception_ce, 0 TSRMLS_CC, "Unexpected value type: expected object implementing %s, %s given", interface_ce->name, zend_zval_type_name(instance)); \
-		} \
-		else { \
-			zend_throw_exception_ex(exception_ce, 0 TSRMLS_CC, "Unexpected value type: expected object implementing %s, object of type %s given", interface_ce->name, Z_OBJCE_P(instance)->name); \
-		} \
+	if (Z_TYPE_P(instance) != IS_OBJECT) { \
+		zend_throw_exception_ex(exception_ce, 0 TSRMLS_CC, "Unexpected value type: expected object implementing %s, %s given", interface_ce->name, zend_zval_type_name(instance)); \
 		if (restore_stack) { \
 			PHALCON_MM_RESTORE(); \
 		} \
 		return; \
+	} else { \
+		if (!instanceof_function_ex(Z_OBJCE_P(instance), interface_ce, 1 TSRMLS_CC)) { \
+			if (Z_TYPE_P(instance) != IS_OBJECT) { \
+				zend_throw_exception_ex(exception_ce, 0 TSRMLS_CC, "Unexpected value type: expected object implementing %s, %s given", interface_ce->name, zend_zval_type_name(instance)); \
+			} \
+			else { \
+				zend_throw_exception_ex(exception_ce, 0 TSRMLS_CC, "Unexpected value type: expected object implementing %s, object of type %s given", interface_ce->name, Z_OBJCE_P(instance)->name); \
+			} \
+			if (restore_stack) { \
+				PHALCON_MM_RESTORE(); \
+			} \
+			return; \
+		} \
 	}
 
 #define PHALCON_VERIFY_INTERFACE_OR_NULL_EX(pzv, interface_ce, exception_ce, restore_stack) \
@@ -409,6 +534,7 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 	}
 
 #define PHALCON_VERIFY_INTERFACE(instance, interface_ce)      PHALCON_VERIFY_INTERFACE_EX(instance, interface_ce, spl_ce_LogicException, 1)
+#define PHALCON_VERIFY_INTERFACEW(instance, interface_ce)      PHALCON_VERIFY_INTERFACE_EX(instance, interface_ce, spl_ce_LogicException, 0)
 #define PHALCON_VERIFY_INTERFACE_OR_NULL(pzv, interface_ce)   PHALCON_VERIFY_INTERFACE_OR_NULL_EX(pzv, interface_ce, spl_ce_LogicException, 1)
 #define PHALCON_VERIFY_CLASS(instance, class_ce)              PHALCON_VERIFY_CLASS_EX(instance, class_ce, spl_ce_LogicException, 1)
 #define PHALCON_VERIFY_CLASS_OR_NULL(pzv, class_ce)           PHALCON_VERIFY_CLASS_OR_NULL_EX(pzv, class_ce, spl_ce_LogicException, 1)
@@ -426,5 +552,18 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 #define PHALCON_ENSURE_IS_DOUBLE(ppzv)    convert_to_explicit_type_ex(ppzv, IS_DOUBLE)
 #define PHALCON_ENSURE_IS_BOOL(ppzv)      convert_to_explicit_type_ex(ppzv, IS_BOOL)
 #define PHALCON_ENSURE_IS_ARRAY(ppzv)     convert_to_explicit_type_ex(ppzv, IS_ARRAY)
+
+#if PHP_VERSION_ID >= 50600
+
+#if ZEND_MODULE_API_NO >= 20141001
+void phalcon_clean_and_cache_symbol_table(zend_array *symbol_table);
+#else
+void phalcon_clean_and_cache_symbol_table(HashTable *symbol_table TSRMLS_DC);
+#endif
+
+#endif
+
+#define PHALCON_CHECK_POINTER(v) if (!v) fprintf(stderr, "%s:%d\n", __PRETTY_FUNCTION__, __LINE__)
+#define PHALCON_DEBUG_POINTER() fprintf(stderr, "%s:%d\n", __PRETTY_FUNCTION__, __LINE__)
 
 #endif /* PHALCON_KERNEL_MAIN_H */

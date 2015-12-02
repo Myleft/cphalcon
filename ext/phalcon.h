@@ -71,11 +71,13 @@
 #include "cli/task.h"
 
 #include "pconfig.h"
+#include "config/adapter.h"
+#include "config/adapterinterface.h"
+#include "config/exception.h"
 #include "config/adapter/ini.h"
 #include "config/adapter/json.h"
 #include "config/adapter/php.h"
 #include "config/adapter/yaml.h"
-#include "config/exception.h"
 
 #include "crypt.h"
 #include "cryptinterface.h"
@@ -109,6 +111,8 @@
 #include "db/result/pdo.h"
 
 #include "debug.h"
+#include "debug/exception.h"
+#include "debug/dump.h"
 
 #include "di.h"
 #include "diinterface.h"
@@ -133,6 +137,7 @@
 #include "events/exception.h"
 #include "events/managerinterface.h"
 #include "events/manager.h"
+#include "events/listener.h"
 
 #include "exception.h"
 
@@ -180,6 +185,7 @@
 #include "http/response/headers.h"
 #include "http/response/headersinterface.h"
 #include "http/uri.h"
+#include "http/client.h"
 #include "http/client/exception.h"
 #include "http/client/header.h"
 #include "http/client/response.h"
@@ -237,6 +243,8 @@
 #include "mvc/collection/message.h"
 #include "mvc/collection/manager.h"
 #include "mvc/collection/managerinterface.h"
+#include "mvc/collection/gridfs.h"
+#include "mvc/collection/resultset.h"
 #include "mvc/controller.h"
 #include "mvc/controllerinterface.h"
 #include "mvc/dispatcher.h"
@@ -254,6 +262,7 @@
 #include "mvc/model/behaviorinterface.h"
 #include "mvc/model/behavior/softdelete.h"
 #include "mvc/model/behavior/timestampable.h"
+#include "mvc/model/behavior/nestedset.h"
 #include "mvc/model/criteria.h"
 #include "mvc/model/criteriainterface.h"
 #include "mvc/model/exception.h"
@@ -270,6 +279,9 @@
 #include "mvc/model/metadata/session.h"
 #include "mvc/model/metadata/memcache.h"
 #include "mvc/model/metadata/libmemcached.h"
+#include "mvc/model/metadata/redis.h"
+#include "mvc/model/metadata/mongo.h"
+#include "mvc/model/metadata/cache.h"
 #include "mvc/model/metadata/strategy/annotations.h"
 #include "mvc/model/metadata/strategy/introspection.h"
 #include "mvc/model/query.h"
@@ -329,6 +341,8 @@
 #include "mvc/view/engine/volt/compiler.h"
 #include "mvc/view/exception.h"
 #include "mvc/view/simple.h"
+#include "mvc/view/model.h"
+#include "mvc/view/modelinterface.h"
 #include "mvc/jsonrpc.h"
 #include "mvc/jsonrpc/exception.h"
 #include "jsonrpc/client.h"
@@ -357,6 +371,7 @@
 #include "registry.h"
 
 #include "security.h"
+#include "security/random.h"
 #include "security/exception.h"
 
 #include "session/adapter.h"
@@ -401,6 +416,14 @@
 #include "validation/validator/stringlength.h"
 #include "validation/validator/url.h"
 #include "validation/validator/file.h"
+#include "validation/validator/numericality.h"
+
+#include "chart/qrcode.h"
+#include "chart/captcha.h"
+#include "chart/exception.h"
+
+#include "scws.h"
+#include "async.h"
 
 #include "version.h"
 

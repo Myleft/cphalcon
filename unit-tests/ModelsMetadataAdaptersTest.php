@@ -64,9 +64,27 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 			),
 			10 => array(),
 			11 => array(),
-			12 => array()
+			12 => array(),
+			13 => array(
+				'id' => 10,
+				'name' => 70,
+				'type' => 32,
+				'year' => 11,
+			),
+			14 => array(
+				'id' => 0,
+				'name' => 0,
+				'type' => 0,
+				'year' => 0,
+			),
+			15 => array(
+				'id' => 32,
+				'name' => 70,
+				'type' => 32,
+				'year' => 32,
+			)
 		),
-		'map-robots' => array(
+		'map-robots-robots' => array(
 			0 => null,
 			1 => null,
 		)
@@ -99,6 +117,10 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		$di->set('modelsManager', function(){
 			return new Phalcon\Mvc\Model\Manager();
 		});
+
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
 
 		$di->set('db', function(){
 			require 'unit-tests/config.db.php';
@@ -211,7 +233,7 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 
 		$this->assertEquals(apc_fetch('$PMM$my-local-appmeta-robots-robots'), $this->_data['meta-robots-robots']);
-		$this->assertEquals(apc_fetch('$PMM$my-local-appmap-robots'), $this->_data['map-robots']);
+		$this->assertEquals(apc_fetch('$PMM$my-local-appmap-robots-robots'), $this->_data['map-robots-robots']);
 
 		$this->assertFalse($metaData->isEmpty());
 
@@ -254,7 +276,7 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 
 		$this->assertEquals(apc_fetch('$PMM$my-local-appmeta-robots-robots'), $this->_data['meta-robots-robots']);
-		$this->assertEquals(apc_fetch('$PMM$my-local-appmap-robots'), $this->_data['map-robots']);
+		$this->assertEquals(apc_fetch('$PMM$my-local-appmap-robots-robots'), $this->_data['map-robots-robots']);
 
 		$this->assertFalse($metaData->isEmpty());
 
@@ -289,7 +311,7 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 
 		$this->assertEquals(require 'unit-tests/cache/meta-robots-robots.php', $this->_data['meta-robots-robots']);
-		$this->assertEquals(require 'unit-tests/cache/map-robots.php', $this->_data['map-robots']);
+		$this->assertEquals(require 'unit-tests/cache/map-robots-robots.php', $this->_data['map-robots-robots']);
 
 		$this->assertFalse($metaData->isEmpty());
 
@@ -301,6 +323,11 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 
 	public function testMetadataMemcached()
 	{
+		if (!extension_loaded('memcache')) {
+			$this->markTestSkipped('Warning: memcache extension is not loaded');
+			return false;
+		}
+
 		require 'unit-tests/config.db.php';
 		if (empty($configMysql)) {
 			$this->markTestSkipped('Test skipped');
@@ -328,7 +355,7 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 
 		$this->assertEquals($metaData->read('meta-robots-robots'), $this->_data['meta-robots-robots']);
-		$this->assertEquals($metaData->read('map-robots'), $this->_data['map-robots']);
+		$this->assertEquals($metaData->read('map-robots-robots'), $this->_data['map-robots-robots']);
 
 		$this->assertFalse($metaData->isEmpty());
 
@@ -340,6 +367,11 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 
 	public function testMetadataLibmemcached()
 	{
+		if (!extension_loaded('memcached')) {
+			$this->markTestSkipped('Warning: memcached extension is not loaded');
+			return false;
+		}
+
 		require 'unit-tests/config.db.php';
 		if (empty($configMysql)) {
 			$this->markTestSkipped('Test skipped');
@@ -367,7 +399,7 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 
 		$this->assertEquals($metaData->read('meta-robots-robots'), $this->_data['meta-robots-robots']);
-		$this->assertEquals($metaData->read('map-robots'), $this->_data['map-robots']);
+		$this->assertEquals($metaData->read('map-robots-robots'), $this->_data['map-robots-robots']);
 
 		$this->assertFalse($metaData->isEmpty());
 
@@ -377,4 +409,143 @@ class ModelsMetadataAdaptersTest extends PHPUnit_Framework_TestCase
 		Robots::findFirst();
 	}
 
+	public function testMetadataRedis()
+	{
+		if (!extension_loaded('redis')) {
+			$this->markTestSkipped('Warning: redis extension is not loaded');
+			return ;
+		}
+
+		require 'unit-tests/config.db.php';
+		if (empty($configMysql)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$di = $this->_getDI();
+
+		$di->set('modelsMetadata', function(){
+			return new Phalcon\Mvc\Model\Metadata\Redis(array(
+				'host' => 'localhost',
+				'port' => 6379,
+				'prefix' => 'my-local-app',
+				'lifetime' => 60
+			));
+		});
+
+		$metaData = $di->getShared('modelsMetadata');
+
+		$metaData->reset();
+
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+
+		$this->assertEquals($metaData->read('meta-robots-robots'), $this->_data['meta-robots-robots']);
+		$this->assertEquals($metaData->read('map-robots-robots'), $this->_data['map-robots-robots']);
+
+		$this->assertFalse($metaData->isEmpty());
+
+		$metaData->reset();
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+	}
+
+	public function testMetadataMongo()
+	{
+		if (!extension_loaded('mongo')) {
+			$this->markTestSkipped('Warning: mongo extension is not loaded');
+			return ;
+		}
+
+		require 'unit-tests/config.db.php';
+		if (empty($configMysql)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$di = $this->_getDI();
+
+		$di->set('modelsMetadata', function(){
+			return new Phalcon\Mvc\Model\Metadata\Mongo(array(
+				'mongo' => new MongoClient(),
+				'db' => 'phalcon_test',
+				'collection' => 'caches',
+				'lifetime' => 60,
+			));
+		});
+
+		$metaData = $di->getShared('modelsMetadata');
+
+		$metaData->reset();
+
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+
+		$this->assertEquals($metaData->read('meta-robots-robots'), $this->_data['meta-robots-robots']);
+		$this->assertEquals($metaData->read('map-robots-robots'), $this->_data['map-robots-robots']);
+
+		$this->assertFalse($metaData->isEmpty());
+
+		$metaData->reset();
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+	}
+
+	public function testMetadataCache()
+	{
+		if (!extension_loaded('mongo')) {
+			$this->markTestSkipped('Warning: mongo extension is not loaded');
+			return ;
+		}
+
+		require 'unit-tests/config.db.php';
+		if (empty($configMysql)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$di = $this->_getDI();
+
+		$di->set('mycache', function(){
+			$frontCache = new Phalcon\Cache\Frontend\Output(array(
+				'lifetime' => 60
+			));
+
+			$cache = new Phalcon\Cache\Backend\Mongo($frontCache, array(
+				'server' => 'mongodb://localhost',
+				'db' => 'phalcon_test',
+				'collection' => 'caches'
+			));
+
+			return $cache;
+		});
+
+		$di->set('modelsMetadata', function(){
+			return new Phalcon\Mvc\Model\Metadata\Cache(array(
+				'service' => 'mycache'
+			));
+		});
+
+		$metaData = $di->getShared('modelsMetadata');
+
+		$metaData->reset();
+
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+
+		$this->assertEquals($metaData->read('meta-robots-robots'), $this->_data['meta-robots-robots']);
+		$this->assertEquals($metaData->read('map-robots-robots'), $this->_data['map-robots-robots']);
+
+		$this->assertFalse($metaData->isEmpty());
+
+		$metaData->reset();
+		$this->assertTrue($metaData->isEmpty());
+
+		Robots::findFirst();
+	}
 }

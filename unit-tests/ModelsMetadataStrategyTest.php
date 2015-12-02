@@ -62,6 +62,24 @@ class ModelsMetadataStrategyTest extends PHPUnit_Framework_TestCase
 		10 => array(),
 		11 => array(),
 		12 => array(),
+		13 => array(
+			'id' => 10,
+			'name' => 70,
+			'type' => 32,
+			'year' => 11,
+		),
+		14 => array(
+			'id' => 0,
+			'name' => 0,
+			'type' => 0,
+			'year' => 0,
+		),
+		15 => array(
+			'id' => 32,
+			'name' => 70,
+			'type' => 32,
+			'year' => 32,
+		),
 	);
 
 	public function __construct()
@@ -84,7 +102,6 @@ class ModelsMetadataStrategyTest extends PHPUnit_Framework_TestCase
 
 	protected function _getDI()
 	{
-
 		Phalcon\DI::reset();
 
 		$di = new Phalcon\DI();
@@ -92,6 +109,10 @@ class ModelsMetadataStrategyTest extends PHPUnit_Framework_TestCase
 		$di['modelsManager'] = function() {
 			return new Phalcon\Mvc\Model\Manager();
 		};
+
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
 
 		$di['db'] = function() {
 			require 'unit-tests/config.db.php';
@@ -155,8 +176,12 @@ class ModelsMetadataStrategyTest extends PHPUnit_Framework_TestCase
 		$meta = $metaData->readMetaData($robots);
 		$this->assertEquals($meta, $this->_expectedMeta);
 
-		$meta = $metaData->readMetaData($robots);
-		$this->assertEquals($meta, $this->_expectedMeta);
+		// Issue 2954
+		$robot = Boutique\Robotters::findFirst();
+		$code = $robot->code;
+		$serialized = serialize($robot);
+		$unserialized = unserialize($serialized);
+		$this->assertEquals($code, $unserialized->code);
 	}
 
 }

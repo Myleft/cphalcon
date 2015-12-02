@@ -44,6 +44,7 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setHeader);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setHeaders);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setData);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setFile);
+PHP_METHOD(Phalcon_Http_Client_Adapter, setFiles);
 PHP_METHOD(Phalcon_Http_Client_Adapter, getPath);
 PHP_METHOD(Phalcon_Http_Client_Adapter, get);
 PHP_METHOD(Phalcon_Http_Client_Adapter, head);
@@ -51,6 +52,7 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, post);
 PHP_METHOD(Phalcon_Http_Client_Adapter, put);
 PHP_METHOD(Phalcon_Http_Client_Adapter, delete);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setUri);
+PHP_METHOD(Phalcon_Http_Client_Adapter, getUri);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setBaseUri);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setMethod);
 PHP_METHOD(Phalcon_Http_Client_Adapter, setTimeOut);
@@ -62,7 +64,8 @@ static const zend_function_entry phalcon_http_client_adapter_method_entry[] = {
 	PHP_ME(Phalcon_Http_Client_Adapter, setHeader, arginfo_phalcon_http_client_adapterinterface_setheader, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setHeaders, arginfo_phalcon_http_client_adapterinterface_setheaders, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setData, arginfo_phalcon_http_client_adapterinterface_setdata, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Http_Client_Adapter, setFile, arginfo_phalcon_http_client_adapterinterface_setfile, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Http_Client_Adapter, setFile, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Http_Client_Adapter, setFiles, arginfo_phalcon_http_client_adapterinterface_setfiles, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, getPath, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, get, arginfo_phalcon_http_client_adapterinterface_get, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, head, arginfo_phalcon_http_client_adapterinterface_head, ZEND_ACC_PUBLIC)
@@ -70,10 +73,11 @@ static const zend_function_entry phalcon_http_client_adapter_method_entry[] = {
 	PHP_ME(Phalcon_Http_Client_Adapter, put, arginfo_phalcon_http_client_adapterinterface_put, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, delete, arginfo_phalcon_http_client_adapterinterface_delete, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setUri, arginfo_phalcon_http_client_adapterinterface_seturi, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Http_Client_Adapter, getUri, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setBaseUri, arginfo_phalcon_http_client_adapterinterface_setbaseuri, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setMethod, arginfo_phalcon_http_client_adapterinterface_setmethod, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Http_Client_Adapter, setTimeOut, arginfo_phalcon_http_client_adapterinterface_setmethod, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Http_Client_Adapter, send, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Http_Client_Adapter, send, arginfo_phalcon_http_client_adapterinterface_send, ZEND_ACC_PUBLIC)
 
 	ZEND_FENTRY(sendInternal, NULL, NULL, ZEND_ACC_PROTECTED|ZEND_ACC_ABSTRACT)
 
@@ -97,7 +101,8 @@ PHALCON_INIT_CLASS(Phalcon_Http_Client_Adapter){
 	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_digest"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_entity_body"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_data"), ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_file"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_type"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_http_client_adapter_ce, SL("_files"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_long(phalcon_http_client_adapter_ce, SL("_timeout"), 30, ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	zend_declare_class_constant_stringl(phalcon_http_client_adapter_ce, SL("VERSION"), SL("0.0.1") TSRMLS_CC);
@@ -209,13 +214,14 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setHeaders){
  * Set data
  *
  * @param array|string $data
+ * @param string $type example: application/json
  * @return Phalcon\Http\Client\Adapter
  */
 PHP_METHOD(Phalcon_Http_Client_Adapter, setData){
 
-	zval *data;
+	zval *data, *type = NULL;
 
-	phalcon_fetch_params(0, 1, 0, &data);
+	phalcon_fetch_params(0, 1, 1, &data, &type);
 
 	if (Z_TYPE_P(data) != IS_NULL && Z_TYPE_P(data) != IS_STRING && Z_TYPE_P(data) != IS_ARRAY) {
 		PHALCON_THROW_EXCEPTION_STRW(phalcon_http_client_exception_ce, "data must be string or array");
@@ -223,6 +229,11 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setData){
 	}
 
 	phalcon_update_property_this(this_ptr, SL("_data"), data TSRMLS_CC);
+
+	if (type) {
+		convert_to_string(type);
+		phalcon_update_property_this(this_ptr, SL("_type"), type TSRMLS_CC);
+	}
 
 	RETURN_THISW();
 }
@@ -235,13 +246,54 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setData){
  */
 PHP_METHOD(Phalcon_Http_Client_Adapter, setFile){
 
-	zval *file;
+	zval *file, *files = NULL;
 
-	phalcon_fetch_params(0, 1, 0, &file);
+	PHALCON_MM_GROW();
 
-	phalcon_update_property_this(this_ptr, SL("_file"), file TSRMLS_CC);
+	phalcon_fetch_params(1, 1, 0, &file);
 
-	RETURN_THISW();
+	if (Z_TYPE_P(file) != IS_ARRAY) {
+		PHALCON_INIT_VAR(files);
+		array_init(files);
+
+		phalcon_array_append(&files, file, PH_COPY);
+	} else {
+		PHALCON_CPY_WRT(files, file);
+	}
+
+	phalcon_update_property_this(this_ptr, SL("_files"), files TSRMLS_CC);
+
+	zend_error_noreturn(E_DEPRECATED, "Method Phalcon\\Http\\Client\\Adapter::setFile is deprecated, please use Phalcon\\Http\\Client\\Adapter::setFiles instead");
+
+	RETURN_THIS();
+}
+
+/**
+ * Set send files
+ *
+ * @param array|string $files
+ * @return Phalcon\Http\Client\Adapter
+ */
+PHP_METHOD(Phalcon_Http_Client_Adapter, setFiles){
+
+	zval *files, *arr = NULL;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 0, &files);
+
+	if (Z_TYPE_P(files) != IS_ARRAY) {
+		PHALCON_INIT_VAR(arr);
+		array_init(arr);
+
+		phalcon_array_append(&arr, files, PH_COPY);
+	} else {
+		PHALCON_CPY_WRT(arr, files);
+	}
+
+	phalcon_update_property_this(this_ptr, SL("_files"), arr TSRMLS_CC);
+
+	RETURN_THIS();
 }
 
 /**
@@ -402,11 +454,33 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setUri){
 
 	base_uri = phalcon_fetch_nproperty_this(this_ptr, SL("_base_uri"), PH_NOISY TSRMLS_CC);
 
-	PHALCON_CALL_METHODW(NULL, base_uri, "extend", uri);
-
-	phalcon_update_property_this(this_ptr, SL("_base_uri"), base_uri TSRMLS_CC);
+	if (Z_TYPE_P(base_uri) == IS_OBJECT) {
+		PHALCON_CALL_METHODW(NULL, base_uri, "extend", uri);
+		phalcon_update_property_this(this_ptr, SL("_base_uri"), base_uri TSRMLS_CC);
+	} else {
+		PHALCON_CALL_SELFW(NULL, "setbaseuri", uri);
+	}
 
 	RETURN_THISW();
+}
+
+/**
+ * Get URI
+ *
+ * @return Phalcon\Http\Uri
+ */
+PHP_METHOD(Phalcon_Http_Client_Adapter, getUri){
+
+	zval *base_uri;
+
+	base_uri = phalcon_fetch_nproperty_this(this_ptr, SL("_base_uri"), PH_NOISY TSRMLS_CC);
+
+	if (Z_TYPE_P(base_uri) != IS_OBJECT) {
+		PHALCON_CALL_SELFW(NULL, "setbaseuri");
+		base_uri = phalcon_fetch_nproperty_this(this_ptr, SL("_base_uri"), PH_NOISY TSRMLS_CC);
+	}
+
+	RETURN_CTORW(base_uri);
 }
 
 /**
@@ -417,11 +491,15 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setUri){
  */
 PHP_METHOD(Phalcon_Http_Client_Adapter, setBaseUri){
 
-	zval *uri, *base_uri;
+	zval *uri = NULL, *base_uri;
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 1, 0, &uri);
+	phalcon_fetch_params(1, 0, 1, &uri);
+
+	if (!uri) {
+		uri = PHALCON_GLOBAL(z_null);
+	}
 
 	PHALCON_INIT_VAR(base_uri);
 	object_init_ex(base_uri, phalcon_http_uri_ce);
@@ -472,6 +550,14 @@ PHP_METHOD(Phalcon_Http_Client_Adapter, setTimeOut){
  * @return Phalcon\Http\Client\Response
  */
 PHP_METHOD(Phalcon_Http_Client_Adapter, send){
+
+	zval *uri = NULL;
+
+	phalcon_fetch_params(0, 0, 1, &uri);
+
+	if (uri) {
+		PHALCON_CALL_SELFW(NULL, "seturi", uri);
+	}
 
 	PHALCON_RETURN_CALL_METHODW(this_ptr, "sendinternal");
 }

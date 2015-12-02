@@ -30,11 +30,6 @@ static const zend_function_entry phalcon_mvc_model_criteriainterface_method_entr
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, columns, arginfo_phalcon_mvc_model_criteriainterface_columns)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, join, arginfo_phalcon_mvc_model_criteriainterface_join)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, where, arginfo_phalcon_mvc_model_criteriainterface_where)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, conditions, arginfo_phalcon_mvc_model_criteriainterface_conditions)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, orderBy, arginfo_phalcon_mvc_model_criteriainterface_orderby)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, limit, arginfo_phalcon_mvc_model_criteriainterface_limit)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, forUpdate, arginfo_phalcon_mvc_model_criteriainterface_forupdate)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, sharedLock, arginfo_phalcon_mvc_model_criteriainterface_sharedlock)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, andWhere, arginfo_phalcon_mvc_model_criteriainterface_andwhere)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, orWhere, arginfo_phalcon_mvc_model_criteriainterface_orwhere)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, betweenWhere, arginfo_phalcon_mvc_model_criteriainterface_betweenwhere)
@@ -42,12 +37,24 @@ static const zend_function_entry phalcon_mvc_model_criteriainterface_method_entr
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, inWhere, arginfo_phalcon_mvc_model_criteriainterface_inwhere)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, notInWhere, arginfo_phalcon_mvc_model_criteriainterface_notinwhere)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getWhere, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, conditions, arginfo_phalcon_mvc_model_criteriainterface_conditions)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getColumns, NULL)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getConditions, NULL)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getLimit, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, orderBy, arginfo_phalcon_mvc_model_criteriainterface_orderby)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getOrder, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, limit, arginfo_phalcon_mvc_model_criteriainterface_limit)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getLimit, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, setUniqueRow, arginfo_phalcon_mvc_model_criteriainterface_setuniquerow)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getUniqueRow, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, forUpdate, arginfo_phalcon_mvc_model_criteriainterface_forupdate)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, sharedLock, arginfo_phalcon_mvc_model_criteriainterface_sharedlock)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getParams, NULL)
 	ZEND_FENTRY(fromInput, NULL, arginfo_phalcon_mvc_model_criteriainterface_frominput, ZEND_ACC_STATIC|ZEND_ACC_ABSTRACT|ZEND_ACC_PUBLIC)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, execute, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, insert, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, update, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, delete, NULL)
+	PHP_ABSTRACT_ME(Phalcon_Mvc_Model_CriteriaInterface, getPhql, NULL)
 	PHP_FE_END
 };
 
@@ -79,7 +86,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getModelName);
 /**
  * Adds the bind parameter to the criteria
  *
- * @param string $bindParams
+ * @param array $bindParams
  * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, bind);
@@ -88,8 +95,8 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, bind);
  * Sets the bind types in the criteria
  * This method replaces all previously set bound parameters
  *
- * @param string $bindTypes
- * @return Phalcon\Mvc\Model\Criteria
+ * @param array $bindTypes
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, bindTypes);
 
@@ -97,6 +104,8 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, bindTypes);
  * Adds the conditions parameter to the criteria
  *
  * @param string $conditions
+ * @param array $bindParams
+ * @param array $bindTypes
  * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, where);
@@ -138,7 +147,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, forUpdate);
  * Sets the "shared_lock" parameter to the criteria
  *
  * @param boolean $sharedLock
- * @return Phalcon\Mvc\Model\Criteria
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, sharedLock);
 
@@ -148,7 +157,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, sharedLock);
  * @param string $conditions
  * @param array $bindParams
  * @param array $bindTypes
- * @return Phalcon\Mvc\Model\Criteria
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, andWhere);
 
@@ -158,7 +167,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, andWhere);
  * @param string $conditions
  * @param array $bindParams
  * @param array $bindTypes
- * @return Phalcon\Mvc\Model\Criteria
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, orWhere);
 
@@ -172,7 +181,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, orWhere);
  * @param string $expr
  * @param mixed $minimum
  * @param mixed $maximum
- * @return Phalcon\Mvc\Model\Query\Builder
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, betweenWhere);
 
@@ -186,7 +195,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, betweenWhere);
  * @param string $expr
  * @param mixed $minimum
  * @param mixed $maximum
- * @return Phalcon\Mvc\Model\Query\Builder
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, notBetweenWhere);
 
@@ -199,7 +208,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, notBetweenWhere);
  *
  * @param string $expr
  * @param array $values
- * @return Phalcon\Mvc\Model\Query\Builder
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, inWhere);
 
@@ -212,7 +221,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, inWhere);
  *
  * @param string $expr
  * @param array $values
- * @return Phalcon\Mvc\Model\Query\Builder
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, notInWhere);
 
@@ -224,6 +233,13 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, notInWhere);
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getWhere);
 
 /**
+ * Returns the columns to be queried
+ *
+ * @return string|array
+ */
+PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getColumns);
+
+/**
  * Returns the conditions parameter in the criteria
  *
  * @return string
@@ -233,7 +249,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getConditions);
 /**
  * Returns the limit parameter in the criteria
  *
- * @return string
+ * @return int
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getLimit);
 
@@ -247,7 +263,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getOrder);
 /**
  * Returns all the parameters defined in the criteria
  *
- * @return string
+ * @return array
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getParams);
 
@@ -257,7 +273,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getParams);
  * @param Phalcon\DiInterface $dependencyInjector
  * @param string $modelName
  * @param array $data
- * @return static
+ * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, fromInput);
 
@@ -297,3 +313,42 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, columns);
  * @return Phalcon\Mvc\Model\CriteriaInterface
  */
 PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, join)
+
+/**
+ * Set columns for an insert
+ *
+ *<code>
+ *	$criteria->insert(array('name', 'type'), array(array('phalcon', 1), array('zephir', 2)));
+ *</code>
+ *
+ * @param array $columns
+ * @param array $values
+ * @return Phalcon\Mvc\Model\CriteriaInterface
+ */
+PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, insert);
+
+/**
+ * Set columns for an update
+ *
+ *<code>
+ *	$criteria->update(array('name' => 'phalcon'));
+ *</code>
+ *
+ * @param array $columns
+ * @return Phalcon\Mvc\Model\CriteriaInterface
+ */
+PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, update);
+
+/**
+ * Set the table for a delete.
+ *
+ * @return Phalcon\Mvc\Model\CriteriaInterface
+ */
+PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, delete);
+
+/**
+ * Returns a PHQL statement built with the criteria
+ *
+ * @return String
+ */
+PHALCON_DOC_METHOD(Phalcon_Mvc_Model_CriteriaInterface, getPhql);

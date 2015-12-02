@@ -54,6 +54,10 @@ class ModelsSnapshotsTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		}, true);
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		return $di;
 	}
 
@@ -204,7 +208,7 @@ class ModelsSnapshotsTest extends PHPUnit_Framework_TestCase
 			$this->assertTrue($row->robot->hasChanged());
 			$this->assertEquals($row->robot->getChangedFields(), array('name', 'year'));
 
-			$this->assertFalse($row->parts->hasSnapshotData());
+			$this->assertTrue($row->parts->hasSnapshotData());
 		}
 	}
 

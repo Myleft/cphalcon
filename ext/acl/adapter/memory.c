@@ -178,7 +178,7 @@ PHP_METHOD(Phalcon_Acl_Adapter_Memory, __construct){
  * 	$acl->addRole('administrator', 'consultant');
  * </code>
  *
- * @param  Phalcon\Acl\RoleInterface $role
+ * @param  Phalcon\Acl\RoleInterface|string $role
  * @param  array|string $accessInherits
  * @return boolean
  */
@@ -284,7 +284,7 @@ PHP_METHOD(Phalcon_Acl_Adapter_Memory, addInherit){
 	
 	PHALCON_OBS_VAR(_roleInherits);
 	phalcon_read_property_this(&_roleInherits, this_ptr, SL("_roleInherits"), PH_NOISY TSRMLS_CC);
-	phalcon_array_append_multi_2(&_roleInherits, role_name, role_inherit_name, 0);
+	phalcon_array_append_multi_2(&_roleInherits, role_name, role_inherit_name, PH_COPY);
 	phalcon_update_property_this(this_ptr, SL("_roleInherits"), _roleInherits TSRMLS_CC);
 	RETURN_MM_TRUE;
 }
@@ -352,7 +352,7 @@ PHP_METHOD(Phalcon_Acl_Adapter_Memory, isResource){
  * $acl->addResource('customers', array('create', 'search'));
  * </code>
  *
- * @param   Phalcon\Acl\Resource $resource
+ * @param   Phalcon\Acl\Resource|string $resource
  * @param   array $accessList
  * @return  boolean
  */

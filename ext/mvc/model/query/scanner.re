@@ -37,6 +37,31 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 		re2c:indent:top = 2;
 		re2c:yyfill:enable = 0;
 
+		HINTEGER = [x0-9A-Fa-f]+;
+		HINTEGER {
+			token->value = estrndup(q, YYCURSOR - q);
+			token->len = YYCURSOR - q;
+			if (token->len > 2 && !memcmp(token->value, "0x", 2)) {
+				token->opcode = PHQL_T_HINTEGER;
+			} else {
+				int i, alpha = 0;
+				for (i = 0; i < token->len; i++) {
+					unsigned char ch = token->value[i];
+					if (!((ch >= '0') && (ch <= '9'))) {
+						alpha = 1;
+						break;
+		 			}
+				}
+				if (alpha) {
+					token->opcode = PHQL_T_IDENTIFIER;
+				} else {
+					token->opcode = PHQL_T_INTEGER;
+				}
+			}
+			q = YYCURSOR;
+			return 0;
+		}
+
 		INTEGER = [0-9]+;
 		INTEGER {
 			token->opcode = PHQL_T_INTEGER;
@@ -278,6 +303,11 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 			return 0;
 		}
 
+        	'EXISTS' {
+			token->opcode = PHQL_T_EXISTS;
+			return 0;
+		}
+
 		'TRUE' {
 			token->opcode = PHQL_T_TRUE;
 			return 0;
@@ -285,6 +315,36 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 
 		'FALSE' {
 			token->opcode = PHQL_T_FALSE;
+			return 0;
+		}
+
+		'FOR' {
+			token->opcode = PHQL_T_FOR;
+			return 0;
+		}
+
+        	'CASE' {
+			token->opcode = PHQL_T_CASE;
+			return 0;
+		}
+
+        	'WHEN' {
+			token->opcode = PHQL_T_WHEN;
+			return 0;
+		}
+
+        	'THEN' {
+			token->opcode = PHQL_T_THEN;
+			return 0;
+		}
+
+       		'ELSE' {
+			token->opcode = PHQL_T_ELSE;
+			return 0;
+		}
+
+        	'END' {
+			token->opcode = PHQL_T_END;
 			return 0;
 		}
 
@@ -297,7 +357,7 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 			return 0;
 		}
 
-		IDENTIFIER = [\\]?[a-zA-Z\_][a-zA-Z0-9\_\\]*;
+		IDENTIFIER = [\\]?[a-zA-Z\_][a-zA-Z0-9\_\\:]*;
 		IDENTIFIER {
 			token->opcode = PHQL_T_IDENTIFIER;
 			if ((YYCURSOR - q) > 1) {
@@ -316,7 +376,7 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 			return 0;
 		}
 
-		EIDENTIFIER = [\[] [a-zA-Z\\\_][a-zA-Z0-9\_\\]* [\]];
+		EIDENTIFIER = [\[] [a-zA-Z\\\_][a-zA-Z0-9\_\\:]* [\]];
 		EIDENTIFIER {
 			token->opcode = PHQL_T_IDENTIFIER;
 			token->value = estrndup(q, YYCURSOR - q - 1);
@@ -407,6 +467,36 @@ int phql_get_token(phql_scanner_state *s, phql_scanner_token *token) {
 
 		"=" {
 			token->opcode = PHQL_T_EQUALS;
+			return 0;
+		}
+
+		'@@' {
+			token->opcode = PHQL_T_TS_MATCHES;
+			return 0;
+		}
+
+		"||" {
+			token->opcode = PHQL_T_TS_OR;
+			return 0;
+		}
+
+		"&&" {
+			token->opcode = PHQL_T_TS_AND;
+			return 0;
+		}
+
+		"!!" {
+			token->opcode = PHQL_T_TS_NEGATE;
+			return 0;
+		}
+
+		"@>" {
+			token->opcode = PHQL_T_TS_CONTAINS_ANOTHER;
+			return 0;
+		}
+
+		"@>" {
+			token->opcode = PHQL_T_TS_CONTAINS_IN;
 			return 0;
 		}
 

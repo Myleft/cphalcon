@@ -52,4 +52,3 @@ PHALCON_DOC_METHOD(Phalcon_DI_InjectionAwareInterface, setDI);
  * @return Phalcon\DiInterface
  */
 PHALCON_DOC_METHOD(Phalcon_DI_InjectionAwareInterface, getDI);
-

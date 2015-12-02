@@ -23,7 +23,6 @@
 #include "flash/exception.h"
 #include "session/adapterinterface.h"
 #include "diinterface.h"
-#include "di/injectionawareinterface.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -43,8 +42,6 @@
  */
 zend_class_entry *phalcon_flash_session_ce;
 
-PHP_METHOD(Phalcon_Flash_Session, setDI);
-PHP_METHOD(Phalcon_Flash_Session, getDI);
 PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages);
 PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages);
 PHP_METHOD(Phalcon_Flash_Session, message);
@@ -52,16 +49,13 @@ PHP_METHOD(Phalcon_Flash_Session, getMessages);
 PHP_METHOD(Phalcon_Flash_Session, output);
 PHP_METHOD(Phalcon_Flash_Session, has);
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_flash_session_setdi, 0, 0, 1)
-	ZEND_ARG_INFO(0, dependencyInjector)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_flash_session_getmessages, 0, 0, 0)
 	ZEND_ARG_INFO(0, type)
 	ZEND_ARG_INFO(0, remove)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_flash_session_output, 0, 0, 0)
+	ZEND_ARG_INFO(0, type)
 	ZEND_ARG_INFO(0, remove)
 ZEND_END_ARG_INFO()
 
@@ -70,8 +64,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_flash_session_has, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry phalcon_flash_session_method_entry[] = {
-	PHP_ME(Phalcon_Flash_Session, setDI, arginfo_phalcon_flash_session_setdi, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Flash_Session, getDI, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Flash_Session, _getSessionMessages, NULL, ZEND_ACC_PROTECTED)
 	PHP_ME(Phalcon_Flash_Session, _setSessionMessages, NULL, ZEND_ACC_PROTECTED)
 	PHP_ME(Phalcon_Flash_Session, message, arginfo_phalcon_flashinterface_message, ZEND_ACC_PUBLIC)
@@ -88,36 +80,9 @@ PHALCON_INIT_CLASS(Phalcon_Flash_Session){
 
 	PHALCON_REGISTER_CLASS_EX(Phalcon\\Flash, Session, flash_session, phalcon_flash_ce, phalcon_flash_session_method_entry, 0);
 
-	zend_declare_property_null(phalcon_flash_session_ce, SL("_dependencyInjector"), ZEND_ACC_PROTECTED TSRMLS_CC);
-
-	zend_class_implements(phalcon_flash_session_ce TSRMLS_CC, 2, phalcon_flashinterface_ce, phalcon_di_injectionawareinterface_ce);
+	zend_class_implements(phalcon_flash_session_ce TSRMLS_CC, 1, phalcon_flashinterface_ce);
 
 	return SUCCESS;
-}
-
-/**
- * Sets the dependency injector
- *
- * @param Phalcon\DiInterface $dependencyInjector
- */
-PHP_METHOD(Phalcon_Flash_Session, setDI){
-
-	zval *dependency_injector;
-
-	phalcon_fetch_params(0, 1, 0, &dependency_injector);
-	PHALCON_VERIFY_INTERFACE_EX(dependency_injector, phalcon_diinterface_ce, phalcon_flash_exception_ce, 0);
-	phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), dependency_injector TSRMLS_CC);
-}
-
-/**
- * Returns the internal dependency injector
- *
- * @return Phalcon\DiInterface
- */
-PHP_METHOD(Phalcon_Flash_Session, getDI){
-
-
-	RETURN_MEMBER(this_ptr, "_dependencyInjector");
 }
 
 /**
@@ -128,18 +93,14 @@ PHP_METHOD(Phalcon_Flash_Session, getDI){
  */
 PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages){
 
-	zval *remove, *dependency_injector, *service;
+	zval *remove, *dependency_injector = NULL, *service;
 	zval *session = NULL, *index_name;
 
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 1, 0, &remove);
-	
-	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (unlikely(Z_TYPE_P(dependency_injector) != IS_OBJECT)) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_flash_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
-	}
+
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 	
 	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
@@ -165,18 +126,14 @@ PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages){
  */
 PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
 
-	zval *messages, *dependency_injector, *service;
+	zval *messages, *dependency_injector = NULL, *service;
 	zval *session = NULL, *index_name;
 
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 1, 0, &messages);
 	
-	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (unlikely(Z_TYPE_P(dependency_injector) != IS_OBJECT)) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_flash_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
-	}
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 	
 	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
@@ -211,7 +168,7 @@ PHP_METHOD(Phalcon_Flash_Session, message){
 		array_init(messages);
 	}
 	
-	phalcon_array_append_multi_2(&messages, type, message, 0);
+	phalcon_array_append_multi_2(&messages, type, message, PH_COPY);
 	PHALCON_CALL_METHOD(NULL, this_ptr, "_setsessionmessages", messages);
 	
 	PHALCON_MM_RESTORE();
@@ -232,11 +189,11 @@ PHP_METHOD(Phalcon_Flash_Session, getMessages){
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 0, 2, &type, &remove);
-	
+
 	if (!type) {
 		type = PHALCON_GLOBAL(z_null);
 	}
-	
+
 	if (!remove) {
 		remove = PHALCON_GLOBAL(z_true);
 	}
@@ -279,36 +236,39 @@ PHP_METHOD(Phalcon_Flash_Session, getMessages){
  */
 PHP_METHOD(Phalcon_Flash_Session, output){
 
-	zval *remove = NULL, *messages = NULL, *message = NULL, *type = NULL;
+	zval *type = NULL, *remove = NULL, *messages = NULL, *message_type = NULL, *message = NULL;
 	HashTable *ah0;
 	HashPosition hp0;
 	zval **hd;
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 0, 1, &remove);
-	
+	phalcon_fetch_params(1, 0, 2, &type, &remove);
+
+	if (!type) {
+		type = PHALCON_GLOBAL(z_null);
+	}
+
 	if (!remove) {
 		remove = PHALCON_GLOBAL(z_true);
 	}
-	
-	PHALCON_CALL_METHOD(&messages, this_ptr, "_getsessionmessages", remove);
+
+	PHALCON_CALL_METHOD(&messages, this_ptr, "getmessages", type, remove);
 	if (Z_TYPE_P(messages) == IS_ARRAY) { 
-	
+
 		phalcon_is_iterable(messages, &ah0, &hp0, 0, 0);
-	
+
 		while (zend_hash_get_current_data_ex(ah0, (void**) &hd, &hp0) == SUCCESS) {
-	
-			PHALCON_GET_HKEY(type, ah0, hp0);
+
+			PHALCON_GET_HKEY(message_type, ah0, hp0);
 			PHALCON_GET_HVALUE(message);
-	
-			PHALCON_CALL_METHOD(NULL, this_ptr, "outputmessage", type, message);
-	
+
+			PHALCON_CALL_METHOD(NULL, this_ptr, "outputmessage", message_type, message);
+
 			zend_hash_move_forward_ex(ah0, &hp0);
 		}
-	
 	}
-	
+
 	PHALCON_MM_RESTORE();
 }
 

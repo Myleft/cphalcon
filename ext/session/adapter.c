@@ -51,6 +51,7 @@ PHP_METHOD(Phalcon_Session_Adapter, setOptions);
 PHP_METHOD(Phalcon_Session_Adapter, getOptions);
 PHP_METHOD(Phalcon_Session_Adapter, get);
 PHP_METHOD(Phalcon_Session_Adapter, set);
+PHP_METHOD(Phalcon_Session_Adapter, sets);
 PHP_METHOD(Phalcon_Session_Adapter, has);
 PHP_METHOD(Phalcon_Session_Adapter, remove);
 PHP_METHOD(Phalcon_Session_Adapter, getId);
@@ -63,6 +64,11 @@ PHP_METHOD(Phalcon_Session_Adapter, setId);
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_session_adapter___construct, 0, 0, 0)
 	ZEND_ARG_INFO(0, options)
+	ZEND_ARG_INFO(0, expire)
+	ZEND_ARG_INFO(0, path)
+	ZEND_ARG_INFO(0, secure)
+	ZEND_ARG_INFO(0, domain)
+	ZEND_ARG_INFO(0, httpOnly)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_session_adapter_setid, 0, 0, 1)
@@ -77,16 +83,17 @@ static const zend_function_entry phalcon_session_adapter_method_entry[] = {
 	PHP_ME(Phalcon_Session_Adapter, getOptions, arginfo_phalcon_session_adapterinterface_getoptions, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, get, arginfo_phalcon_session_adapterinterface_get, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, set, arginfo_phalcon_session_adapterinterface_set, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Session_Adapter, sets, arginfo_phalcon_session_adapterinterface_sets, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, has, arginfo_phalcon_session_adapterinterface_has, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, remove, arginfo_phalcon_session_adapterinterface_remove, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, getId, arginfo_phalcon_session_adapterinterface_getid, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, isStarted, arginfo_phalcon_session_adapterinterface_isstarted, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Adapter, destroy, arginfo_phalcon_session_adapterinterface_destroy, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Session_Adapter, __get, arginfo___getref, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Session_Adapter, __get, arginfo___get, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, __set, set, arginfo___set, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, __isset, has, arginfo___isset, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, __unset, remove, arginfo___unset, ZEND_ACC_PUBLIC)
-	PHP_MALIAS(Phalcon_Session_Adapter, offsetGet, __get, arginfo_arrayaccess_offsetgetref, ZEND_ACC_PUBLIC)
+	PHP_MALIAS(Phalcon_Session_Adapter, offsetGet, __get, arginfo_arrayaccess_offsetget, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, offsetSet, set, arginfo_arrayaccess_offsetset, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, offsetExists, has, arginfo_arrayaccess_offsetexists, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Adapter, offsetUnset, remove, arginfo_arrayaccess_offsetunset, ZEND_ACC_PUBLIC)
@@ -401,6 +408,11 @@ PHALCON_INIT_CLASS(Phalcon_Session_Adapter){
 	zend_declare_property_null(phalcon_session_adapter_ce, SL("_uniqueId"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_bool(phalcon_session_adapter_ce, SL("_started"), 0, ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_session_adapter_ce, SL("_options"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_session_adapter_ce, SL("_expire"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_string(phalcon_session_adapter_ce, SL("_path"), "/", ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_session_adapter_ce, SL("_secure"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(phalcon_session_adapter_ce, SL("_domain"), ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_bool(phalcon_session_adapter_ce, SL("_httpOnly"), 0, ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	/**
 	 * T2414 - niden - Removed if statement for nuSphere Debugger
@@ -438,15 +450,44 @@ PHALCON_INIT_CLASS(Phalcon_Session_Adapter){
  * Phalcon\Session\Adapter constructor
  *
  * @param array $options
+ * @param int $expire
+ * @param string $path
+ * @param boolean $secure
+ * @param string $domain
+ * @param boolean $httpOnly
  */
 PHP_METHOD(Phalcon_Session_Adapter, __construct){
 
-	zval *options = NULL;
+	zval *options = NULL, *expire = NULL, *path = NULL, *secure = NULL, *domain = NULL, *http_only = NULL;
 
-	phalcon_fetch_params(0, 0, 1, &options);
+	phalcon_fetch_params(0, 0, 6, &options, &expire, &path, &secure, &domain, &http_only);
 
 	if (options && Z_TYPE_P(options) == IS_ARRAY) {
 		PHALCON_CALL_METHODW(NULL, this_ptr, "setoptions", options);
+	}
+
+	if (expire || path || secure || domain || http_only || http_only) {
+		if (!expire) {
+			expire = phalcon_fetch_nproperty_this(getThis(), SL("_expire"), PH_NOISY TSRMLS_CC);
+		}
+
+		if (!path) {
+			path = phalcon_fetch_nproperty_this(getThis(), SL("_path"), PH_NOISY TSRMLS_CC);
+		}
+
+		if (!secure) {
+			secure = phalcon_fetch_nproperty_this(getThis(), SL("_secure"), PH_NOISY TSRMLS_CC);
+		}
+
+		if (!domain) {
+			domain = phalcon_fetch_nproperty_this(getThis(), SL("_domain"), PH_NOISY TSRMLS_CC);
+		}
+
+		if (!http_only) {
+			http_only = phalcon_fetch_nproperty_this(getThis(), SL("_httpOnly"), PH_NOISY TSRMLS_CC);
+		}
+
+		PHALCON_CALL_FUNCTIONW(NULL, "session_set_cookie_params", expire, path, secure, domain, http_only);
 	}
 }
 
@@ -575,6 +616,42 @@ PHP_METHOD(Phalcon_Session_Adapter, set){
 
 	phalcon_fetch_params(0, 2, 0, &index, &value);
 	phalcon_session_adapter_write_property_internal(getThis(), index, value TSRMLS_CC);
+}
+
+/**
+ * Sets a session variables in an application context
+ *
+ *<code>
+ *	$session->sets(array('auth', 'yes'));
+ *</code>
+ *
+ * @param array $data
+ */
+PHP_METHOD(Phalcon_Session_Adapter, sets){
+
+	zval *data, *index = NULL, *value = NULL;
+	HashTable *ah0;
+	HashPosition hp0;
+	zval **hd;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 1, 0, &data);
+
+	if (Z_TYPE_P(data) == IS_ARRAY) { 
+		phalcon_is_iterable(data, &ah0, &hp0, 0, 0);
+		while (zend_hash_get_current_data_ex(ah0, (void**) &hd, &hp0) == SUCCESS) {
+
+			PHALCON_GET_HKEY(index, ah0, hp0);
+			PHALCON_GET_HVALUE(value);
+
+			PHALCON_CALL_SELF(NULL, "set", index, value);
+
+			zend_hash_move_forward_ex(ah0, &hp0);
+		}
+	}
+
+	PHALCON_MM_RESTORE();
 }
 
 /**

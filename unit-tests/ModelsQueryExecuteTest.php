@@ -65,6 +65,10 @@ class ModelsQueryExecuteTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		});
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		return $di;
 	}
 
@@ -455,6 +459,29 @@ class ModelsQueryExecuteTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals(count($result), 2);
 		$this->assertInstanceOf('Phalcon\Mvc\Model\Row', $result[0]);
 
+		$result = $manager->executeQuery('SELECT ALL estado FROM Personas LIMIT 2');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $result);
+		$this->assertEquals(count($result), 2);
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Row', $result[0]);
+		$result = $manager->executeQuery('SELECT DISTINCT estado FROM Personas');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $result);
+		$this->assertEquals(count($result), 2);
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Row', $result[0]);
+		$result = $manager->executeQuery('SELECT count(DISTINCT estado) FROM Personas');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
+		$this->assertEquals(count($result), 1);
+		$this->assertEquals(2, $result[0]->{"0"});
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Row', $result[0]);
+		$result = $manager->executeQuery('SELECT CASE 1 WHEN 1 THEN 2 END FROM Robots');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
+		$this->assertEquals(2, $result[0]->{"0"});
+		$result = $manager->executeQuery('SELECT CASE 2 WHEN 1 THEN 2 WHEN 2 THEN 3 END FROM Robots');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
+		$this->assertEquals(3, $result[0]->{"0"});
+		$result = $manager->executeQuery('SELECT CASE 2 WHEN 1 THEN 2 ELSE 3 END FROM Robots');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
+		$this->assertEquals(3, $result[0]->{"0"});
+
 		// Issue 1011
 		$result = $manager->executeQuery('SELECT r.name le_name FROM Robots r ORDER BY r.name ASC LIMIT ?1,?2', array(1 => 1, 2 => 2), array(1 => \Phalcon\Db\Column::BIND_PARAM_INT, 2 => \Phalcon\Db\Column::BIND_PARAM_INT));
 		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $result);
@@ -678,6 +705,14 @@ class ModelsQueryExecuteTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals($result[1]->r->code, 1);
 		$this->assertEquals($result[1]->p->code, 2);
 
+		$result = $manager->executeQuery('SELECT r.* FROM Robots r WHERE r.id NOT IN (SELECT p.id FROM Parts p WHERE r.id < p.id)');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $result);
+
+		$result = $manager->executeQuery('SELECT * FROM Robots r JOIN RobotsParts rp WHERE rp.id IN (SELECT p.id FROM Parts p WHERE rp.parts_id = p.id)');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
+
+		$result = $manager->executeQuery('SELECT * FROM Robots r JOIN RobotsParts rp WHERE r.id IN (SELECT p.id FROM Parts p)');
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Complex', $result);
 	}
 
 	public function _testInsertExecute($di)

@@ -54,6 +54,10 @@ class ModelsRelationsMagicTest extends PHPUnit_Framework_TestCase
 			return new Phalcon\Mvc\Model\Metadata\Memory();
 		});
 
+		$di->set('modelsQuery', 'Phalcon\Mvc\Model\Query');
+		$di->set('modelsQueryBuilder', 'Phalcon\Mvc\Model\Query\Builder');
+		$di->set('modelsCriteria', 'Phalcon\\Mvc\\Model\\Criteria');
+
 		return $di;
 	}
 
@@ -76,15 +80,20 @@ class ModelsRelationsMagicTest extends PHPUnit_Framework_TestCase
 		$this->_executeSaveRelatedBelongsTo($connection);
 	}
 
-	/*public function testModelsPostgresql()
+	public function testModelsPostgresql()
 	{
 
 		$di = $this->_getDI();
 
-		$di->set('db', function(){
-			require 'unit-tests/config.db.php';
-			return new Phalcon\Db\Adapter\Pdo\Postgresql($configPostgresql);
-		}, true);
+		require 'unit-tests/config.db.php';
+		if (empty($configPostgresql)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$connection = new Phalcon\Db\Adapter\Pdo\Postgresql($configPostgresql);
+
+		$di->set('db', $connection, true);
 
 		$this->_executeQueryRelated();
 		$this->_executeSaveRelatedBelongsTo($connection);
@@ -95,14 +104,19 @@ class ModelsRelationsMagicTest extends PHPUnit_Framework_TestCase
 
 		$di = $this->_getDI();
 
-		$di->set('db', function(){
-			require 'unit-tests/config.db.php';
-			return new Phalcon\Db\Adapter\Pdo\Sqlite($configSqlite);
-		}, true);
+		require 'unit-tests/config.db.php';
+		if (empty($configSqlite)) {
+			$this->markTestSkipped('Test skipped');
+			return;
+		}
+
+		$connection = new Phalcon\Db\Adapter\Pdo\Sqlite($configSqlite);
+
+		$di->set('db', $connection, true);
 
 		$this->_executeQueryRelated();
 		$this->_executeSaveRelatedBelongsTo($connection);
-	}*/
+	}
 
 	public function _executeQueryRelated()
 	{

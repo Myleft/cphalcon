@@ -20,7 +20,7 @@
 #include "security.h"
 #include "security/exception.h"
 #include "diinterface.h"
-#include "di/injectionawareinterface.h"
+#include "di/injectable.h"
 #include "http/requestinterface.h"
 #include "session/adapterinterface.h"
 
@@ -74,8 +74,6 @@ static const unsigned char ascii64[] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZab
  */
 zend_class_entry *phalcon_security_ce;
 
-PHP_METHOD(Phalcon_Security, setDI);
-PHP_METHOD(Phalcon_Security, getDI);
 PHP_METHOD(Phalcon_Security, setRandomBytes);
 PHP_METHOD(Phalcon_Security, getRandomBytes);
 PHP_METHOD(Phalcon_Security, setWorkFactor);
@@ -88,15 +86,12 @@ PHP_METHOD(Phalcon_Security, getTokenKey);
 PHP_METHOD(Phalcon_Security, getToken);
 PHP_METHOD(Phalcon_Security, checkToken);
 PHP_METHOD(Phalcon_Security, getSessionToken);
+PHP_METHOD(Phalcon_Security, destroyToken);
 PHP_METHOD(Phalcon_Security, computeHmac);
 PHP_METHOD(Phalcon_Security, deriveKey);
 PHP_METHOD(Phalcon_Security, pbkdf2);
 PHP_METHOD(Phalcon_Security, getDefaultHash);
 PHP_METHOD(Phalcon_Security, setDefaultHash);
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_setdi, 0, 0, 1)
-	ZEND_ARG_INFO(0, dependencyInjector)
-ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_setrandombytes, 0, 0, 1)
 	ZEND_ARG_INFO(0, randomBytes)
@@ -122,16 +117,28 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_islegacyhash, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_gettokenkey, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
 	ZEND_ARG_INFO(0, numberBytes)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_gettoken, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
 	ZEND_ARG_INFO(0, numberBytes)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_checktoken, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
 	ZEND_ARG_INFO(0, tokenKey)
 	ZEND_ARG_INFO(0, tokenValue)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_getsessiontoken, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_destroytoken, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, tokenKey)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_computehmac, 0, 0, 3)
@@ -154,8 +161,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_security_setdefaulthash, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry phalcon_security_method_entry[] = {
-	PHP_ME(Phalcon_Security, setDI, arginfo_phalcon_security_setdi, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Security, getDI, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, setRandomBytes, arginfo_phalcon_security_setrandombytes, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, getRandomBytes, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, setWorkFactor, arginfo_phalcon_security_setworkfactor, ZEND_ACC_PUBLIC)
@@ -167,7 +172,8 @@ static const zend_function_entry phalcon_security_method_entry[] = {
 	PHP_ME(Phalcon_Security, getTokenKey, arginfo_phalcon_security_gettokenkey, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, getToken, arginfo_phalcon_security_gettoken, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, checkToken, arginfo_phalcon_security_checktoken, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Security, getSessionToken, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Security, getSessionToken, arginfo_phalcon_security_getsessiontoken, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Security, destroyToken, arginfo_phalcon_security_destroytoken, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Security, computeHmac, arginfo_phalcon_security_computehmac, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(Phalcon_Security, deriveKey, arginfo_phalcon_security_derivekey, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(Phalcon_Security, pbkdf2, arginfo_phalcon_security_derivekey, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
@@ -181,15 +187,12 @@ static const zend_function_entry phalcon_security_method_entry[] = {
  */
 PHALCON_INIT_CLASS(Phalcon_Security){
 
-	PHALCON_REGISTER_CLASS(Phalcon, Security, security, phalcon_security_method_entry, 0);
+	PHALCON_REGISTER_CLASS_EX(Phalcon, Security, security, phalcon_di_injectable_ce, phalcon_security_method_entry, 0);
 
-	zend_declare_property_null(phalcon_security_ce, SL("_dependencyInjector"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_long(phalcon_security_ce, SL("_workFactor"), 8, ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_long(phalcon_security_ce, SL("_numberBytes"), 16, ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_security_ce, SL("_csrf"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_long(phalcon_security_ce, SL("_defaultHash"), PHALCON_SECURITY_CRYPT_DEFAULT, ZEND_ACC_PROTECTED TSRMLS_CC);
-
-	zend_class_implements(phalcon_security_ce TSRMLS_CC, 1, phalcon_di_injectionawareinterface_ce);
 
 	zend_declare_class_constant_long(phalcon_security_ce, SL("CRYPT_DEFAULT"),    PHALCON_SECURITY_CRYPT_DEFAULT    TSRMLS_CC);
 	zend_declare_class_constant_long(phalcon_security_ce, SL("CRYPT_STD_DES"),    PHALCON_SECURITY_CRYPT_STD_DES    TSRMLS_CC);
@@ -202,31 +205,6 @@ PHALCON_INIT_CLASS(Phalcon_Security){
 	zend_declare_class_constant_long(phalcon_security_ce, SL("CRYPT_SHA512"),     PHALCON_SECURITY_CRYPT_SHA512     TSRMLS_CC);
 
 	return SUCCESS;
-}
-
-/**
- * Sets the dependency injector
- *
- * @param Phalcon\DiInterface $dependencyInjector
- */
-PHP_METHOD(Phalcon_Security, setDI){
-
-	zval *dependency_injector;
-
-	phalcon_fetch_params(0, 1, 0, &dependency_injector);
-	PHALCON_VERIFY_INTERFACE_EX(dependency_injector, phalcon_diinterface_ce, phalcon_security_exception_ce, 0);
-	phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), dependency_injector TSRMLS_CC);
-}
-
-/**
- * Returns the internal dependency injector
- *
- * @return Phalcon\DiInterface
- */
-PHP_METHOD(Phalcon_Security, getDI){
-
-
-	RETURN_MEMBER(this_ptr, "_dependencyInjector");
 }
 
 /**
@@ -351,13 +329,13 @@ PHP_METHOD(Phalcon_Security, getSaltBytes)
 		PHALCON_CALL_FUNCTIONW(&tmp, "openssl_random_pseudo_bytes", n);
 
 		if (Z_TYPE_P(tmp) != IS_STRING || Z_STRLEN_P(tmp) < i_bytes) {
-			zval_ptr_dtor(&tmp);
+			phalcon_ptr_dtor(&tmp);
 			RETURN_FALSE;
 		}
 
 		result = Z_STRVAL_P(tmp);
 		ZVAL_NULL(tmp);
-		zval_ptr_dtor(&tmp);
+		phalcon_ptr_dtor(&tmp);
 	}
 
 	result[i_bytes] = 0;
@@ -593,7 +571,7 @@ PHP_METHOD(Phalcon_Security, hash)
 	}
 
 	if (Z_STRLEN_P(return_value) < 13) {
-		zval_dtor(return_value);
+		phalcon_dtor(return_value);
 		RETURN_MM_FALSE;
 	}
 
@@ -646,11 +624,11 @@ PHP_METHOD(Phalcon_Security, checkHash){
 			--n;
 		}
 
-		zval_ptr_dtor(&hash);
+		phalcon_ptr_dtor(&hash);
 		RETURN_BOOL(check == 0);
 	}
 
-	zval_ptr_dtor(&hash);
+	phalcon_ptr_dtor(&hash);
 	RETURN_FALSE;
 }
 
@@ -681,13 +659,20 @@ PHP_METHOD(Phalcon_Security, isLegacyHash){
  */
 PHP_METHOD(Phalcon_Security, getTokenKey){
 
-	zval *number_bytes = NULL, *random_bytes = NULL, *base64bytes;
-	zval *safe_bytes, *dependency_injector, *service;
+	zval *name = NULL, *number_bytes = NULL, *random_bytes = NULL, *base64bytes;
+	zval *safe_bytes, *dependency_injector = NULL, *service;
 	zval *session = NULL, *key;
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 0, 1, &number_bytes);
+	phalcon_fetch_params(1, 0, 2, &name, &number_bytes);
+
+	PHALCON_INIT_VAR(key);
+	ZVAL_STRING(key, "$PHALCON/CSRF/KEY$", 1);
+
+	if (name && !PHALCON_IS_EMPTY(name)) {
+		PHALCON_SCONCAT(key, name);
+	}
 
 	if (!number_bytes) {
 		PHALCON_INIT_VAR(number_bytes);
@@ -707,12 +692,7 @@ PHP_METHOD(Phalcon_Security, getTokenKey){
 	PHALCON_INIT_VAR(safe_bytes);
 	phalcon_filter_alphanum(safe_bytes, base64bytes);
 
-	PHALCON_OBS_VAR(dependency_injector);
-	phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_security_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
-	}
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 
 	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
@@ -720,8 +700,6 @@ PHP_METHOD(Phalcon_Security, getTokenKey){
 	PHALCON_CALL_METHOD(&session, dependency_injector, "getshared", service);
 	PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
 
-	PHALCON_INIT_VAR(key);
-	ZVAL_STRING(key, "$PHALCON/CSRF/KEY$", 1);
 	PHALCON_CALL_METHOD(NULL, session, "set", key, safe_bytes);
 
 	RETURN_CTOR(safe_bytes);
@@ -735,12 +713,19 @@ PHP_METHOD(Phalcon_Security, getTokenKey){
  */
 PHP_METHOD(Phalcon_Security, getToken){
 
-	zval *number_bytes = NULL, *random_bytes = NULL, *token, *dependency_injector;
+	zval *name = NULL, *number_bytes = NULL, *random_bytes = NULL, *token, *dependency_injector = NULL;
 	zval *service, *session = NULL, *key;
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 0, 1, &number_bytes);
+	phalcon_fetch_params(1, 0, 2, &name, &number_bytes);
+
+	PHALCON_INIT_VAR(key);
+	ZVAL_STRING(key, "$PHALCON/CSRF$", 1);
+
+	if (name && !PHALCON_IS_EMPTY(name)) {
+		PHALCON_SCONCAT(key, name);
+	}
 
 	if (!number_bytes) {
 		PHALCON_INIT_VAR(number_bytes);
@@ -757,20 +742,14 @@ PHP_METHOD(Phalcon_Security, getToken){
 	PHALCON_INIT_VAR(token);
 	phalcon_md5(token, random_bytes);
 
-	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_security_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
-	}
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 
-	PHALCON_ALLOC_GHOST_ZVAL(service);
+	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
 
 	PHALCON_CALL_METHOD(&session, dependency_injector, "getshared", service);
 	PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
 
-	PHALCON_ALLOC_GHOST_ZVAL(key);
-	ZVAL_STRING(key, "$PHALCON/CSRF$", 1);
 	PHALCON_CALL_METHOD(NULL, session, "set", key, token);
 
 	RETURN_CTOR(token);
@@ -785,24 +764,19 @@ PHP_METHOD(Phalcon_Security, getToken){
  */
 PHP_METHOD(Phalcon_Security, checkToken){
 
-	zval *token_key = NULL, *token_value = NULL, *dependency_injector;
+	zval *name = NULL, *token_key = NULL, *token_value = NULL, *dependency_injector = NULL;
 	zval *service = NULL, *session = NULL, *key = NULL, *request = NULL;
 	zval *token = NULL, *session_token = NULL;
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 0, 2, &token_key, &token_value);
+	phalcon_fetch_params(1, 0, 3, &name, &token_key, &token_value);
 
 	if (!token_value) {
 		token_value = PHALCON_GLOBAL(z_null);
 	}
 
-	PHALCON_OBS_VAR(dependency_injector);
-	phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_security_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
-	}
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 
 	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
@@ -811,8 +785,12 @@ PHP_METHOD(Phalcon_Security, checkToken){
 	PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
 
 	if (!token_key || Z_TYPE_P(token_key) == IS_NULL) {
-		PHALCON_INIT_VAR(key);
+		PHALCON_INIT_NVAR(key);
 		ZVAL_STRING(key, "$PHALCON/CSRF/KEY$", 1);
+
+		if (name && !PHALCON_IS_EMPTY(name)) {
+			PHALCON_SCONCAT(key, name);
+		}
 
 		PHALCON_CALL_METHOD(&token_key, session, "get", key);
 	}
@@ -835,6 +813,10 @@ PHP_METHOD(Phalcon_Security, checkToken){
 	PHALCON_INIT_NVAR(key);
 	ZVAL_STRING(key, "$PHALCON/CSRF$", 1);
 
+	if (name && !PHALCON_IS_EMPTY(name)) {
+		PHALCON_SCONCAT(key, name);
+	}
+
 	PHALCON_CALL_METHOD(&session_token, session, "get", key);
 
 	/**
@@ -852,27 +834,77 @@ PHP_METHOD(Phalcon_Security, checkToken){
  */
 PHP_METHOD(Phalcon_Security, getSessionToken){
 
-	zval *dependency_injector, *service, *session = NULL;
-	zval *key;
+	zval *name = NULL, *dependency_injector = NULL, *service, *session = NULL, *key;
 
 	PHALCON_MM_GROW();
 
-	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_security_exception_ce, "A dependency injection container is required to access the 'session' service");
-		return;
+	phalcon_fetch_params(1, 0, 1, &name);
+
+	PHALCON_INIT_VAR(key);
+	ZVAL_STRING(key, "$PHALCON/CSRF$", 1);
+
+	if (name && !PHALCON_IS_EMPTY(name)) {
+		PHALCON_SCONCAT(key, name);
 	}
 
-	PHALCON_ALLOC_GHOST_ZVAL(service);
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
+
+	PHALCON_INIT_VAR(service);
 	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
 
 	PHALCON_CALL_METHOD(&session, dependency_injector, "getshared", service);
 	PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
 
-	PHALCON_ALLOC_GHOST_ZVAL(key);
+	PHALCON_RETURN_CALL_METHOD(session, "get", key);
+
+	PHALCON_MM_RESTORE();
+}
+
+/**
+ * Removes the value of the CSRF token and key from session
+ */
+PHP_METHOD(Phalcon_Security, destroyToken){
+
+	zval *name = NULL, *token_key = NULL, *dependency_injector = NULL, *service, *session = NULL, *key = NULL;
+
+	PHALCON_MM_GROW();
+
+	phalcon_fetch_params(1, 0, 2, &name, &token_key);
+
+	PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
+
+	PHALCON_INIT_VAR(service);
+	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
+
+	PHALCON_CALL_METHOD(&session, dependency_injector, "getshared", service);
+	PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
+
+
+	PHALCON_INIT_VAR(key);
 	ZVAL_STRING(key, "$PHALCON/CSRF$", 1);
 
-	PHALCON_RETURN_CALL_METHOD(session, "get", key);
+	if (name && !PHALCON_IS_EMPTY(name)) {
+		PHALCON_SCONCAT(key, name);
+	}
+
+	PHALCON_CALL_METHOD(NULL, session, "remove", key);
+
+	PHALCON_INIT_NVAR(key);
+	if (!token_key || PHALCON_IS_EMPTY(token_key)) {
+		ZVAL_STRING(key, "$PHALCON/CSRF/KEY$", 1);
+		if (name && !PHALCON_IS_EMPTY(name)) {
+			PHALCON_SCONCAT(key, name);
+		}
+	} else {
+		if (UNEXPECTED(Z_TYPE_P(token_key) != IS_STRING)) {
+			PHALCON_ENSURE_IS_STRING(&token_key);
+			convert_to_string(token_key);
+		}
+
+		ZVAL_STRING(key, Z_STRVAL_P(token_key), 1);
+	}
+
+	PHALCON_CALL_METHOD(NULL, session, "remove", key);
 
 	PHALCON_MM_RESTORE();
 }
@@ -1182,9 +1214,9 @@ PHP_METHOD(Phalcon_Security, deriveKey)
 			}
 		}
 
-		zval_ptr_dtor(&algo);
-		zval_ptr_dtor(&iter);
-		zval_ptr_dtor(&len);
+		phalcon_ptr_dtor(&algo);
+		phalcon_ptr_dtor(&iter);
+		phalcon_ptr_dtor(&len);
 	}
 #else
 	ZEND_MN(Phalcon_Security_pbkdf2)(INTERNAL_FUNCTION_PARAM_PASSTHRU);

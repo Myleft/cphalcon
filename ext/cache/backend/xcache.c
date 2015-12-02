@@ -125,7 +125,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Xcache, __construct){
 	}
 
 	if (!phalcon_array_isset_string(options, SS("statsKey"))) {
-		phalcon_array_update_string_string(&options, SL("statsKey"), SL("_PHCX"), 0);
+		phalcon_array_update_string_string(&options, SL("statsKey"), SL("_PHCX"), PH_COPY);
 	}
 	
 	PHALCON_CALL_PARENT(NULL, phalcon_cache_backend_xcache_ce, this_ptr, "__construct", frontend, options);
@@ -363,7 +363,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Xcache, queryKeys){
 			if (Z_TYPE(key) == IS_STRING && phalcon_memnstr(&key, prefixed)) {
 				PHALCON_INIT_NVAR(real_key);
 				phalcon_substr(real_key, &key, 5, 0);
-				phalcon_array_append(&return_value, real_key, 0);
+				phalcon_array_append(&return_value, real_key, PH_COPY);
 			}
 		}
 	}
@@ -494,7 +494,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Xcache, decrement){
 		PHALCON_RETURN_CALL_FUNCTION("xcache_inc", last_key, *value);
 	} else {
 		PHALCON_CALL_FUNCTION(&origVal, "xcache_get", last_key);
-		sub_function(return_value, origVal, *value TSRMLS_CC);
+		phalcon_sub_function(return_value, origVal, *value);
 		PHALCON_CALL_METHOD(NULL, this_ptr, "save", *key_name, return_value);
 	}
 

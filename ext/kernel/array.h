@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -14,11 +14,15 @@
   +------------------------------------------------------------------------+
   | Authors: Andres Gutierrez <andres@phalconphp.com>                      |
   |          Eduar Carvajal <eduar@phalconphp.com>                         |
+  |          ZhuZongXin <dreamsxin@qq.com>                                 |
   +------------------------------------------------------------------------+
 */
 
+
 #ifndef PHALCON_KERNEL_ARRAY_H
 #define PHALCON_KERNEL_ARRAY_H
+
+#define PHALCON_MAX_ARRAY_LEVELS 16
 
 #include "php_phalcon.h"
 #include "kernel/memory.h"
@@ -97,7 +101,7 @@ PHALCON_ATTR_NONNULL static inline int phalcon_array_isset_string_fetch(zval **f
  * @note @c index will be handled as follows: @c NULL is treated as an empty string, @c double values are cast to @c integer, @c bool or @c resource are treated as @c integer
  * @throw E_WARNING if @a offset is not a scalar
  */
-int phalcon_array_isset(const zval *arr, const zval *index) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_isset(const zval *arr, const zval *index) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Checks whether numeric @a index exists in array @a arr
@@ -107,7 +111,7 @@ int phalcon_array_isset(const zval *arr, const zval *index) PHALCON_ATTR_NONNULL
  * @retval 0 Not exists or @a arr is not an array
  * @retval 1 Exists
  */
-int phalcon_array_isset_long(const zval *arr, ulong index) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_isset_long(const zval *arr, ulong index) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Checks whether string @a index exists in array @a arr using the precomputed key @a key
@@ -119,7 +123,7 @@ int phalcon_array_isset_long(const zval *arr, ulong index) PHALCON_ATTR_NONNULL;
  * @retval 0 Not exists or @a arr is not an array
  * @retval 1 Exists
  */
-int phalcon_array_isset_quick_string(const zval *arr, const char *index, uint index_length, ulong key) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_isset_quick_string(const zval *arr, const char *index, uint index_length, ulong key) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Checks whether string @a index exists in array @a arr
@@ -154,7 +158,7 @@ PHALCON_ATTR_NONNULL static inline int phalcon_array_isset_string(const zval *ar
  * @note @c index will be handled as follows: @c NULL is treated as an empty string, @c double values are cast to @c integer, @c bool or @c resource are treated as @c integer
  * @throw @c E_WARNING if @a offset is not a scalar
  */
-int phalcon_array_unset(zval **arr, const zval *index, int flags) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_unset(zval **arr, const zval *index, int flags) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Unsets numeric @a index from array @a arr
@@ -165,7 +169,7 @@ int phalcon_array_unset(zval **arr, const zval *index, int flags) PHALCON_ATTR_N
  * @retval @c FAILURE Failure or @a arr is not an array
  * @retval @c SUCCESS Success
  */
-int phalcon_array_unset_long(zval **arr, ulong index, int flags) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_unset_long(zval **arr, ulong index, int flags) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Unsets string @a index from array @a arr
@@ -177,7 +181,7 @@ int phalcon_array_unset_long(zval **arr, ulong index, int flags) PHALCON_ATTR_NO
  * @retval @c FAILURE Failure or @a arr is not an array
  * @retval @c SUCCESS Success
  */
-int phalcon_array_unset_string(zval **arr, const char *index, uint index_length, int flags) PHALCON_ATTR_NONNULL;
+int ZEND_FASTCALL phalcon_array_unset_string(zval **arr, const char *index, uint index_length, int flags) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Pushes @a value onto the end of @a arr
@@ -230,14 +234,14 @@ PHALCON_ATTR_NONNULL static inline int phalcon_array_append_long(zval **arr, lon
  *
  * Equivalent to <tt>$arr[] = $value</tt> in PHP, where @c $value is a string.
  */
-PHALCON_ATTR_NONNULL static inline int phalcon_array_append_string(zval **arr, const char *value, uint value_length, int separate)
+PHALCON_ATTR_NONNULL static inline int phalcon_array_append_string(zval **arr, const char *value, uint value_length, int flags)
 {
 	zval *zvalue;
 
 	PHALCON_ALLOC_GHOST_ZVAL(zvalue);
 	ZVAL_STRINGL(zvalue, value, value_length, 1);
 
-	return phalcon_array_append(arr, zvalue, separate);
+	return phalcon_array_append(arr, zvalue, flags);
 }
 
 /**
@@ -258,6 +262,7 @@ PHALCON_ATTR_NONNULL static inline int phalcon_array_append_string(zval **arr, c
  * @arg @c PH_COPY: increment the reference count on @c **value
  */
 int phalcon_array_update_zval(zval **arr, const zval *index, zval *value, int flags) PHALCON_ATTR_NONNULL;
+int phalcon_array_update_hash(HashTable *ht, const zval *index, zval *value, int flags) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief Updates value in @a arr at position @a index with boolean @a value
@@ -429,6 +434,31 @@ PHALCON_ATTR_NONNULL static inline int phalcon_array_update_string_long(zval **a
 
 	MAKE_STD_ZVAL(zvalue);
 	ZVAL_LONG(zvalue, value);
+
+	return phalcon_array_update_string(arr, index, index_length, zvalue, flags & PH_SEPARATE);
+}
+
+/**
+ * @brief Updates value in @a arr at position @a index with double @a value
+ * @param[in,out] arr Array
+ * @param index Index
+ * @param index_length Length of the index, should include the trailing zero
+ * @param value Value
+ * @param flags Flags (@c PH_SEPARATE: separate @a arr if its reference count is greater than 1; @c *arr will contain the separated version)
+ * @return Whether the operation succeeded
+ * @retval @c FAILURE Failure, @a arr is not an array
+ * @retval @c SUCCESS Success
+ * @throw @c E_WARNING if @a arr is not an array
+ * @see phalcon_array_update_string()
+ *
+ * Equivalent to <tt>$arr[$index] = $value</tt> in PHP, where @c $index is a string key and $value is an double.
+ */
+PHALCON_ATTR_NONNULL static inline int phalcon_array_update_string_double(zval **arr, const char *index, uint index_length, double value, int flags)
+{
+	zval *zvalue;
+
+	MAKE_STD_ZVAL(zvalue);
+	ZVAL_DOUBLE(zvalue, value);
 
 	return phalcon_array_update_string(arr, index, index_length, zvalue, flags & PH_SEPARATE);
 }
@@ -709,6 +739,7 @@ void phalcon_fast_array_merge(zval *return_value, zval **array1, zval **array2 T
  * that Phalcon's version preserves numeric keys
  */
 void phalcon_array_merge_recursive_n(zval **a1, zval *a2) PHALCON_ATTR_NONNULL;
+void phalcon_array_merge_recursive_n2(zval **a1, zval *a2) PHALCON_ATTR_NONNULL;
 
 /**
  * Port php_splice function from PHP 5.5 because it did`nt work in php 5.6 beta 1
@@ -729,7 +760,7 @@ void phalcon_array_unshift(zval *arr, zval *arg TSRMLS_DC) PHALCON_ATTR_NONNULL;
  * @param return_value
  * @param arr
  */
-void phalcon_array_keys(zval *return_value, zval *arr) PHALCON_ATTR_NONNULL;
+void phalcon_array_keys(zval *return_value, zval *arr TSRMLS_DC) PHALCON_ATTR_NONNULL;
 
 /**
  * @brief <tt>$return_value = array_values($arr)</tt>
@@ -747,5 +778,8 @@ void phalcon_array_values(zval *return_value, zval *arr) PHALCON_ATTR_NONNULL;
 int phalcon_array_key_exists(zval *arr, zval *key TSRMLS_DC) PHALCON_ATTR_NONNULL;
 
 int phalcon_array_is_associative(zval *arr);
+
+void phalcon_array_update_multi_ex(zval **arr, zval *value, const char *types, int types_length, int types_count, va_list ap TSRMLS_DC);
+int phalcon_array_update_multi(zval **arr, zval *value TSRMLS_DC, const char *types, int types_length, int types_count, ...);
 
 #endif /* PHALCON_KERNEL_ARRAY_H */

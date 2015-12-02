@@ -155,8 +155,8 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, addResource){
 	
 	PHALCON_INIT_VAR(scope);
 	array_init_size(scope, 2);
-	phalcon_array_append(&scope, prefix, 0);
-	phalcon_array_append(&scope, handler, 0);
+	phalcon_array_append(&scope, prefix, PH_COPY);
+	phalcon_array_append(&scope, handler, PH_COPY);
 	phalcon_update_property_array_append(this_ptr, SL("_handlers"), scope TSRMLS_CC);
 	phalcon_update_property_this(this_ptr, SL("_processed"), PHALCON_GLOBAL(z_false) TSRMLS_CC);
 	
@@ -194,9 +194,9 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, addModuleResource){
 	
 	MAKE_STD_ZVAL(scope);
 	array_init_size(scope, 3);
-	phalcon_array_append(&scope, prefix, 0);
-	phalcon_array_append(&scope, handler, 0);
-	phalcon_array_append(&scope, module, 0);
+	phalcon_array_append(&scope, prefix, PH_COPY);
+	phalcon_array_append(&scope, handler, PH_COPY);
+	phalcon_array_append(&scope, module, PH_COPY);
 	phalcon_update_property_array_append(this_ptr, SL("_handlers"), scope TSRMLS_CC);
 	zval_ptr_dtor(&scope);
 
@@ -249,7 +249,8 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, handle){
 	
 		PHALCON_OBS_VAR(handlers);
 		phalcon_read_property_this(&handlers, this_ptr, SL("_handlers"), PH_NOISY TSRMLS_CC);
-		if (Z_TYPE_P(handlers) == IS_ARRAY) { 
+		if (Z_TYPE_P(handlers) == IS_ARRAY) {
+			PHALCON_CALL_METHOD(&dependency_injector, this_ptr, "getdi");
 	
 			PHALCON_OBS_VAR(controller_suffix);
 			phalcon_read_property_this(&controller_suffix, this_ptr, SL("_controllerSuffix"), PH_NOISY TSRMLS_CC);
@@ -274,15 +275,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, handle){
 						}
 					}
 	
-					if (Z_TYPE_P(annotations_service) != IS_OBJECT) {
-	
-						PHALCON_OBS_NVAR(dependency_injector);
-						phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
-						if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-							PHALCON_THROW_EXCEPTION_STR(phalcon_mvc_router_exception_ce, "A dependency injection container is required to access the 'annotations' service");
-							return;
-						}
-	
+					if (Z_TYPE_P(annotations_service) != IS_OBJECT) {	
 						PHALCON_INIT_NVAR(service);
 						ZVAL_STRING(service, "annotations", 1);
 	
@@ -480,6 +473,9 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, processActionAnnotation){
 	} else if (PHALCON_IS_STRING(name, "Put")) {
 		is_route = 1;
 		ZVAL_STRING(methods, phalcon_interned_PUT, !IS_INTERNED(phalcon_interned_PUT));
+	} else if (PHALCON_IS_STRING(name, "Delete")) {
+		is_route = 1;
+		ZVAL_STRING(methods, phalcon_interned_DELETE, !IS_INTERNED(phalcon_interned_DELETE));
 	} else if (PHALCON_IS_STRING(name, "Options")) {
 		is_route = 1;
 		ZVAL_STRING(methods, phalcon_interned_OPTIONS, !IS_INTERNED(phalcon_interned_OPTIONS));

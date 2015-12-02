@@ -144,7 +144,7 @@ static zval* phalcon_config_read_internal(phalcon_config_object *object, zval *k
 {
 	zval **retval;
 
-	if (UNEXPECTED(!key)) {
+	if (UNEXPECTED(!key) || Z_TYPE_P(key) == IS_NULL) {
 		return EG(uninitialized_zval_ptr);
 	}
 
@@ -633,6 +633,7 @@ PHP_METHOD(Phalcon_Config, offsetUnset){
  *</code>
  *
  * @param Phalcon\Config $config
+ * @return Phalcon\Config
  */
 PHP_METHOD(Phalcon_Config, merge){
 
@@ -652,7 +653,7 @@ PHP_METHOD(Phalcon_Config, merge){
 	if (Z_TYPE_P(config) == IS_OBJECT) {
 		ALLOC_INIT_ZVAL(array_config);
 		if (FAILURE == phalcon_config_toarray_internal(&array_config, config TSRMLS_CC)) {
-			zval_ptr_dtor(&array_config);
+			phalcon_ptr_dtor(&array_config);
 			return;
 		}
 	}
@@ -699,8 +700,10 @@ PHP_METHOD(Phalcon_Config, merge){
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
-	
-	zval_ptr_dtor(&array_config);
+
+	phalcon_ptr_dtor(&array_config);
+
+	RETURN_THISW();
 }
 
 /**
@@ -742,7 +745,7 @@ PHP_METHOD(Phalcon_Config, toArray){
 					break;
 				}
 
-				phalcon_array_update_zval(&return_value, &key, array_value, 0);
+				phalcon_array_update_zval(&return_value, &key, array_value, PH_COPY);
 			}
 		}
 	}

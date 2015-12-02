@@ -30,6 +30,7 @@
 #define PHQL_T_INTEGER 258
 #define PHQL_T_DOUBLE 259
 #define PHQL_T_STRING 260
+#define PHQL_T_HINTEGER 261
 #define PHQL_T_IDENTIFIER 265
 
 /* Operators */
@@ -66,6 +67,8 @@
 /** Placeholders */
 #define PHQL_T_NPLACEHOLDER 273
 #define PHQL_T_SPLACEHOLDER 274
+#define PHQL_T_NTPLACEHOLDER 277
+#define PHQL_T_STPLACEHOLDER 278
 
 /** Reserved words */
 #define PHQL_T_UPDATE 300
@@ -106,6 +109,7 @@
 #define PHQL_T_CONVERT 335
 #define PHQL_T_USING 336
 #define PHQL_T_ALL 337
+#define PHQL_T_FOR 338
 
 /** Special Tokens */
 #define PHQL_T_FCALL 350
@@ -126,6 +130,23 @@
 #define PHQL_T_ISNULL 365
 #define PHQL_T_ISNOTNULL 366
 #define PHQL_T_MINUS 367
+
+/** Postgresql Text Search Operators */
+#define PHQL_T_TS_MATCHES 401
+#define PHQL_T_TS_OR 402
+#define PHQL_T_TS_AND 403
+#define PHQL_T_TS_NEGATE 404
+#define PHQL_T_TS_CONTAINS_ANOTHER 405
+#define PHQL_T_TS_CONTAINS_IN 406
+
+#define PHQL_T_SUBQUERY 407
+#define PHQL_T_EXISTS 408
+
+#define PHQL_T_CASE 409
+#define PHQL_T_WHEN 410
+#define PHQL_T_ELSE 411
+#define PHQL_T_END 412
+#define PHQL_T_THEN 413
 
 /* list of tokens and their names */
 typedef struct _phql_token_names {

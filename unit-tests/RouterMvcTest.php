@@ -538,13 +538,13 @@ class RouterMvcTest extends PHPUnit_Framework_TestCase
 			'action' => 'show',
 		));
 
-		$route = $router->add("/route3", "MyApp\\Controllers\\::show");
+		$route = $router->add("/route4", "MyApp\\Controllers\\::show");
 		$this->assertEquals($route->getPaths(), array(
 			'controller' => '',
 			'action' => 'show',
 		));
 
-		$route = $router->add("/route3", "News::MyApp\\Controllers\\Posts::show");
+		$route = $router->add("/route5", "News::MyApp\\Controllers\\Posts::show");
 		$this->assertEquals($route->getPaths(), array(
 			'module' => 'News',
 			'namespace' => 'MyApp\\Controllers',
@@ -552,9 +552,21 @@ class RouterMvcTest extends PHPUnit_Framework_TestCase
 			'action' => 'show',
 		));
 
-		$route = $router->add("/route3", "\\Posts::show");
+		$route = $router->add("/route6", "\\Posts::show");
 		$this->assertEquals($route->getPaths(), array(
 			'controller' => 'posts',
+			'action' => 'show',
+		));
+
+		$route = $router->add("/route7", 'MyPosts::show');
+		$this->assertEquals($route->getPaths(), array(
+			'controller' => 'my_posts',
+			'action' => 'show',
+		));
+
+		$route = $router->add("/route8", array('controller' => 'MyPosts', 'action' => 'show'));
+		$this->assertEquals($route->getPaths(), array(
+			'controller' => 'my_posts',
 			'action' => 'show',
 		));
 	}
@@ -860,4 +872,104 @@ class RouterMvcTest extends PHPUnit_Framework_TestCase
 		}
 	}
 
+	public function testIssues6787()
+	{
+		Phalcon\Mvc\Router\Route::reset();
+
+		$router = new Phalcon\Mvc\Router(false);
+		$router->add('/test/:params', array(
+			'params' => 1
+		));
+
+		$router->handle('/test/0');
+		$this->assertEquals($router->getParams(), array(0 => '0'));
+
+		$router->handle('/test/1');
+		$this->assertEquals($router->getParams(), array(0 => '1'));
+
+		$router->handle('/test/true');
+		$this->assertEquals($router->getParams(), array(0 => 'true'));
+
+		$router->handle('/test/false');
+		$this->assertEquals($router->getParams(), array(0 => 'false'));
+	}
+
+	public function testRegex()
+	{
+		Phalcon\Mvc\Router\Route::reset();
+
+		$router = new Phalcon\Mvc\Router(false);
+		
+		$router->add('/:controller/:action/:params', array(
+			"controller" => 1,
+			"action" => 2,
+			"params" => 3,
+		));
+
+		$router->handle('/c/a/p');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c/a/p', 1 => 'c', 2 => 'a', 3 => '/p'));
+
+		Phalcon\Mvc\Router\Route::reset();
+
+		$router = new Phalcon\Mvc\Router(false);
+		
+		$router->add('/:controller/:action:params', array(
+			"controller" => 1,
+			"action" => 2,
+			"params" => 3,
+		), array(
+			':controller' => '([a-zA-Z0-9_-]+)',
+			':action' => '([a-zA-Z0-9_-]+)',
+			':params' => '(/[a-zA-Z0-9_-]+)?',
+		));
+
+		$router->handle('/c/a/p');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c/a/p', 1 => 'c', 2 => 'a', 3 => '/p'));
+
+		Phalcon\Mvc\Router\Route::reset();
+
+		$router = new Phalcon\Mvc\Router(false);
+
+		$router->add(':controller:action:params', array(
+			"controller" => 1,
+			"action" => 2,
+			"params" => 3,
+		), array(
+			':controller' => '/([a-zA-Z0-9_-]+)',
+			':action' => '/([a-zA-Z0-9_-]+)',
+			':params' => '(/[a-zA-Z0-9_-]+)?',
+		));
+
+		$router->handle('/c/a/p');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c/a/p', 1 => 'c', 2 => 'a', 3 => '/p'));
+
+		Phalcon\Mvc\Router\Route::reset();
+
+		$router = new Phalcon\Mvc\Router(false);
+
+		$router->add('/(:controller(/:action(/:params)?)?)?', array(
+			"controller" => 2,
+			"action" => 4,
+			"params" => 5,
+		), array(
+			':controller' => '([a-zA-Z0-9_-]+)',
+			':action' => '([a-zA-Z0-9_-]+)',
+			':params' => '([a-zA-Z0-9_-]+)?',
+		));
+
+		$router->handle('/c/a/p');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c/a/p', 1 => 'c/a/p', 2 => 'c', 3 => '/a/p', 4 => 'a', 5 => '/p', 6 => 'p'));
+
+		$router->handle('/c/a');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c/a', 1 => 'c/a', 2 => 'c', 3 => '/a', 4 => 'a'));
+
+		$router->handle('/c');
+
+		$this->assertEquals($router->getMatches(), array(0 => '/c', 1 => 'c', 2 => 'c'));
+	}
 }

@@ -45,8 +45,6 @@ static const zend_function_entry phalcon_mvc_modelinterface_method_entry[] = {
 	ZEND_FENTRY(maximum, NULL, arginfo_phalcon_mvc_modelinterface_maximum, ZEND_ACC_STATIC|ZEND_ACC_ABSTRACT|ZEND_ACC_PUBLIC)
 	ZEND_FENTRY(minimum, NULL, arginfo_phalcon_mvc_modelinterface_minimum, ZEND_ACC_STATIC|ZEND_ACC_ABSTRACT|ZEND_ACC_PUBLIC)
 	ZEND_FENTRY(average, NULL, arginfo_phalcon_mvc_modelinterface_average, ZEND_ACC_STATIC|ZEND_ACC_ABSTRACT|ZEND_ACC_PUBLIC)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_ModelInterface, fireEvent, arginfo_phalcon_mvc_modelinterface_fireevent)
-	PHP_ABSTRACT_ME(Phalcon_Mvc_ModelInterface, fireEventCancel, arginfo_phalcon_mvc_modelinterface_fireeventcancel)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_ModelInterface, appendMessage, arginfo_phalcon_mvc_modelinterface_appendmessage)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_ModelInterface, validationHasFailed, NULL)
 	PHP_ABSTRACT_ME(Phalcon_Mvc_ModelInterface, getMessages, arginfo_phalcon_mvc_modelinterface_getmessages)
@@ -148,7 +146,6 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_ModelInterface, getWriteConnection);
 /**
  * Assigns values to a model from an array
  *
- * @param Phalcon\Mvc\Model $object
  * @param array $data
  * @param array $columnMap
  * @return Phalcon\Mvc\Model
@@ -180,6 +177,7 @@ PHALCON_DOC_METHOD(Phalcon_Mvc_ModelInterface, cloneResult);
 /**
  * Returns an hydrated result based on the data and the column map
  *
+ * @param Phalcon\Mvc\Model $base
  * @param array $data
  * @param array $columnMap
  * @param int $hydrationMode

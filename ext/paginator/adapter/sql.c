@@ -22,7 +22,7 @@
 #include "paginator/exception.h"
 #include "db/adapterinterface.h"
 
-#include "ext/pdo/php_pdo_driver.h"
+#include <ext/pdo/php_pdo_driver.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -39,6 +39,21 @@
  *
  * Pagination using a SQL as source of data
  *
+ * <code>
+ * $sql = "SELECT * FROM robots WHERE type = :type LIMIT :limit OFFSET :offset ";
+ * $sql2 = "SELECT COUNT(*) rowcount WHERE type = :type FROM robots";
+ *
+ * $bind = ['type' => 'google'];
+ *
+ * $paginator = new \Phalcon\Paginator\Adapter\Sql(array(
+ *                 "db" => $this->db,
+ *                 "sql" => $sql,
+ *                 "total_sql" => $sql2,
+ *                 "bind" => $bind,
+ *                 "limit" => 20,
+ *                 "page" => $page
+ * ));
+ * </code>
  */
 zend_class_entry *phalcon_paginator_adapter_sql_ce;
 
@@ -288,7 +303,7 @@ PHP_METHOD(Phalcon_Paginator_Adapter_Sql, getPaginate){
 	/* Set the limit clause avoiding negative offsets */
 	if (i_number < i_limit) {
 		phalcon_array_update_string(&bind, SL("limit"), limit, PH_COPY);
-		phalcon_array_update_string_long(&bind, SL("offset"), 0, 0);
+		phalcon_array_update_string_long(&bind, SL("offset"), 0, PH_COPY);
 	} else {
 		zval *number;
 		PHALCON_ALLOC_GHOST_ZVAL(number);

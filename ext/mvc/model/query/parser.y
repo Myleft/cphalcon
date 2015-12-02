@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2015 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -26,6 +26,7 @@
 %right AGAINST .
 %left BETWEEN .
 %left EQUALS NOTEQUALS LESS GREATER GREATEREQUAL LESSEQUAL .
+%left TS_MATCHES TS_OR TS_AND TS_NEGATE TS_CONTAINS_ANOTHER TS_CONTAINS_IN .
 %left AND OR .
 %left LIKE ILIKE .
 %left BITWISE_AND BITWISE_OR BITWISE_XOR .
@@ -49,6 +50,9 @@
 #include "kernel/memory.h"
 #include "kernel/fcall.h"
 #include "kernel/exception.h"
+#include "kernel/array.h"
+
+#include "kernel/framework/orm.h"
 
 #include "interned-strings.h"
 
@@ -57,7 +61,7 @@ static zval *phql_ret_literal_zval(int type, phql_parser_token *T)
 	zval *ret;
 
 	MAKE_STD_ZVAL(ret);
-	array_init(ret);
+	array_init_size(ret, 2);
 	add_assoc_long(ret, phalcon_interned_type, type);
 	if (T) {
 		add_assoc_stringl(ret, phalcon_interned_value, T->token, T->token_len, 0);
@@ -125,7 +129,7 @@ static zval *phql_ret_raw_qualified_name(phql_parser_token *A, phql_parser_token
 	return ret;
 }
 
-static zval *phql_ret_select_statement(zval *S, zval *W, zval *O, zval *G, zval *H, zval *L)
+static zval *phql_ret_select_statement(zval *S, zval *W, zval *O, zval *G, zval *H, zval *L, zval *F)
 {
 	zval *ret;
 
@@ -149,6 +153,9 @@ static zval *phql_ret_select_statement(zval *S, zval *W, zval *O, zval *G, zval 
 	}
 	if (L != NULL) {
 		add_assoc_zval(ret, phalcon_interned_limit, L);
+	}
+	if (F != NULL) {
+		add_assoc_zval(ret, phalcon_interned_forupdate, F);
 	}
 
 	return ret;
@@ -224,6 +231,16 @@ static zval *phql_ret_limit_clause(zval *L, zval *O)
 	return ret;
 }
 
+static zval *phql_ret_forupdate_clause()
+{
+	zval *ret;
+
+	MAKE_STD_ZVAL(ret);
+	ZVAL_TRUE(ret);
+
+	return ret;
+}
+
 static zval *phql_ret_insert_statement(zval *Q, zval *F, zval *V)
 {
 	zval *ret;
@@ -237,6 +254,34 @@ static zval *phql_ret_insert_statement(zval *Q, zval *F, zval *V)
 		add_assoc_zval(ret, phalcon_interned_fields, F);
 	}
 	add_assoc_zval(ret, phalcon_interned_values, V);
+
+	return ret;
+}
+
+static zval *phql_ret_insert_statement2(zval *ret, zval *F, zval *V)
+{
+	zval *key1, *key2, *rows, *values;
+
+	MAKE_STD_ZVAL(key1);
+	ZVAL_STRING(key1, phalcon_interned_rows, 1);
+
+	MAKE_STD_ZVAL(rows);
+	if (!phalcon_array_isset_fetch(&rows, ret, key1)) {
+		array_init_size(rows, 1);		
+
+		MAKE_STD_ZVAL(key2);
+		ZVAL_STRING(key2, phalcon_interned_values, 1);
+
+		MAKE_STD_ZVAL(values);
+		if (phalcon_array_isset_fetch(&values, ret, key2)) {
+			Z_ADDREF_P(values);
+			add_next_index_zval(rows, values);	
+		}
+	}
+
+	add_next_index_zval(rows, V);
+	Z_ADDREF_P(rows);
+	add_assoc_zval(ret, phalcon_interned_rows, rows);
 
 	return ret;
 }
@@ -558,8 +603,8 @@ query_language(R) ::= delete_statement(D) . {
 
 %destructor select_statement { zval_ptr_dtor(&$$); }
 
-select_statement(R) ::= select_clause(S) where_clause(W) group_clause(G) having_clause(H) order_clause(O) select_limit_clause(L) . {
-	R = phql_ret_select_statement(S, W, O, G, H, L);
+select_statement(R) ::= select_clause(S) where_clause(W) group_clause(G) having_clause(H) order_clause(O) select_limit_clause(L) forupdate_clause(F) . {
+	R = phql_ret_select_statement(S, W, O, G, H, L, F);
 }
 
 %destructor select_clause { zval_ptr_dtor(&$$); }
@@ -720,6 +765,10 @@ join_conditions(R) ::= . {
 %destructor insert_statement { zval_ptr_dtor(&$$); }
 
 /* Insert */
+insert_statement(R) ::= insert_statement(Q) COMMA PARENTHESES_OPEN values_list(V) PARENTHESES_CLOSE . {
+	R = phql_ret_insert_statement2(Q, NULL, V);
+}
+
 insert_statement(R) ::= INSERT INTO aliased_or_qualified_name(Q) VALUES PARENTHESES_OPEN values_list(V) PARENTHESES_CLOSE . {
 	R = phql_ret_insert_statement(Q, NULL, V);
 }
@@ -934,6 +983,20 @@ limit_clause(R) ::= . {
 	R = NULL;
 }
 
+%destructor forupdate_clause { phalcon_safe_zval_ptr_dtor($$); }
+
+forupdate_clause(R) ::= FOR UPDATE . {
+	R = phql_ret_forupdate_clause();
+}
+
+forupdate_clause(R) ::= . {
+	R = NULL;
+}
+
+integer_or_placeholder(R) ::= HINTEGER(I) . {
+	R = phql_ret_literal_zval(PHQL_T_HINTEGER, I);
+}
+
 integer_or_placeholder(R) ::= INTEGER(I) . {
 	R = phql_ret_literal_zval(PHQL_T_INTEGER, I);
 }
@@ -1012,6 +1075,30 @@ expr(R) ::= expr(O1) GREATEREQUAL expr(O2) . {
 	R = phql_ret_expr(PHQL_T_GREATEREQUAL, O1, O2);
 }
 
+expr(R) ::= expr(O1) TS_MATCHES expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_MATCHES, O1, O2);
+}
+
+expr(R) ::= expr(O1) TS_OR expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_OR, O1, O2);
+}
+
+expr(R) ::= expr(O1) TS_AND expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_AND, O1, O2);
+}
+
+expr(R) ::= expr(O1) TS_NEGATE expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_NEGATE, O1, O2);
+}
+
+expr(R) ::= expr(O1) TS_CONTAINS_ANOTHER expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_CONTAINS_ANOTHER, O1, O2);
+}
+
+expr(R) ::= expr(O1) TS_CONTAINS_IN expr(O2) . {
+	R = phql_ret_expr(PHQL_T_TS_CONTAINS_IN, O1, O2);
+}
+
 expr(R) ::= expr(O1) LESSEQUAL expr(O2) . {
 	R = phql_ret_expr(PHQL_T_LESSEQUAL, O1, O2);
 }
@@ -1040,6 +1127,22 @@ expr(R) ::= expr(E) NOT IN PARENTHESES_OPEN argument_list(L) PARENTHESES_CLOSE .
 	R = phql_ret_expr(PHQL_T_NOTIN, E, L);
 }
 
+expr(R) ::= PARENTHESES_OPEN select_statement(S) PARENTHESES_CLOSE . {
+	R = phql_ret_expr(PHQL_T_SUBQUERY, S, NULL);
+}
+
+expr(R) ::= expr(E) IN PARENTHESES_OPEN select_statement(S) PARENTHESES_CLOSE . {
+	R = phql_ret_expr(PHQL_T_IN, E, S);
+}
+
+expr(R) ::= expr(E) NOT IN PARENTHESES_OPEN select_statement(S) PARENTHESES_CLOSE . {
+	R = phql_ret_expr(PHQL_T_NOTIN, E, S);
+}
+
+expr(R) ::= EXISTS PARENTHESES_OPEN select_statement(S) PARENTHESES_CLOSE . {
+	R = phql_ret_expr(PHQL_T_EXISTS, NULL, S);
+}
+
 expr(R) ::= expr(O1) AGAINST expr(O2) . {
 	R = phql_ret_expr(PHQL_T_AGAINST, O1, O2);
 }
@@ -1050,6 +1153,26 @@ expr(R) ::= CAST PARENTHESES_OPEN expr(E) AS IDENTIFIER(I) PARENTHESES_CLOSE . {
 
 expr(R) ::= CONVERT PARENTHESES_OPEN expr(E) USING IDENTIFIER(I) PARENTHESES_CLOSE . {
 	R = phql_ret_expr(PHQL_T_CONVERT, E, phql_ret_raw_qualified_name(I, NULL));
+}
+
+expr(R) ::= CASE expr(E) when_clauses(W) END . {
+	R = phql_ret_expr(PHQL_T_CASE, E, W);
+}
+
+when_clauses(R) ::= when_clauses(L) when_clause(W) . {
+	R = phql_ret_zval_list(L, W);
+}
+
+when_clauses(R) ::= when_clause(W) . {
+	R = phql_ret_zval_list(W, NULL);
+}
+
+when_clause(R) ::= WHEN expr(E) THEN expr(T) . {
+	R = phql_ret_expr(PHQL_T_WHEN, E, T);
+}
+
+when_clause(R) ::= ELSE expr(E) . {
+	R = phql_ret_expr(PHQL_T_ELSE, E, NULL);
 }
 
 %destructor function_call { zval_ptr_dtor(&$$); }
@@ -1130,6 +1253,10 @@ expr(R) ::= qualified_name(Q) . {
 	R = Q;
 }
 
+expr(R) ::= HINTEGER(I) . {
+	R = phql_ret_literal_zval(PHQL_T_HINTEGER, I);
+}
+
 expr(R) ::= INTEGER(I) . {
 	R = phql_ret_literal_zval(PHQL_T_INTEGER, I);
 }
@@ -1160,6 +1287,14 @@ expr(R) ::= NPLACEHOLDER(P) . {
 
 expr(R) ::= SPLACEHOLDER(P) . {
 	R = phql_ret_placeholder_zval(PHQL_T_SPLACEHOLDER, P);
+}
+
+expr(R) ::= NTPLACEHOLDER(P) . {
+	R = phql_ret_placeholder_zval(PHQL_T_NTPLACEHOLDER, P);
+}
+
+expr(R) ::= STPLACEHOLDER(P) . {
+	R = phql_ret_placeholder_zval(PHQL_T_STPLACEHOLDER, P);
 }
 
 %destructor qualified_name { zval_ptr_dtor(&$$); }

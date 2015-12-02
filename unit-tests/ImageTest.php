@@ -270,6 +270,18 @@ class ImageTest extends PHPUnit_Framework_TestCase
 
 		// Add a text to the bottom right of the image
 		$image->text('hello', TRUE, TRUE);
+		$image->text('world', FALSE, FALSE);
+
+		$image = new Phalcon\Image\Adapter\Imagick(NULL, 250, 250);
+		$image->background('#FFFFFF');
+		 // center
+		$image->text('phalcon', NULL, NULL, 100,  '#000000', 60, "unit-tests/fonts/wqy-microhei.ttc");
+		// north
+		$image->text('hello', NULL, FALSE, 100,  '#000000', 60, "unit-tests/fonts/wqy-microhei.ttc");
+		// south
+		$image->text('world', NULL, TRUE, 100,  '#000000', 60, "unit-tests/fonts/wqy-microhei.ttc");
+		$image->save('unit-tests/assets/text.jpg');
+		$this->assertTrue(file_exists('unit-tests/assets/text.jpg'));
 
 		// Set font size
 		//$image->text('hello', TRUE, TRUE, NULL, NULL, 12);
@@ -300,8 +312,29 @@ class ImageTest extends PHPUnit_Framework_TestCase
 		//$data = $image->render('png');
 	}
 
+	public function testFilter()
+	{
+		// \Phalcon\Image\Adapter\Imagick::setResourceLimit(6, 4);
+
+		// $image = new \Phalcon\Image\Adapter\Imagick('unit-tests/assets/phalconphp.jpg');
+		// $image->earlybird()->save('unit-tests/assets/production/earlybird.jpg');
+		// $this->assertTrue(file_exists('unit-tests/assets/production/earlybird.jpg'));
+
+		// $image = new \Phalcon\Image\Adapter\Imagick('unit-tests/assets/phalconphp.jpg');
+		// $image->inkwell()->save('unit-tests/assets/production/inkwell.jpg');
+		// $this->assertTrue(file_exists('unit-tests/assets/production/inkwell.jpg'));
+
+		// Phalcon\Image\Adapter\Imagick::convert(array('convert', 'unit-tests/assets/phalconphp.jpg', '+dither', '-colors', '2', '-colorspace', 'gray', '-contrast-stretch', '0', '2colorthresh.jpg'));
+
+		// Phalcon\Image\Adapter\Imagick::convert(array('convert', 'unit-tests/assets/phalconphp.jpg', '-recolor', '1.275 0 0 0 1.159 0 0 0 1.214', 'whitebalance.jpg'));
+	}
+
 	public function testIssues2259()
 	{
+		if (!function_exists('gd_info')) {
+			return;
+		}
+
 		$image = new Phalcon\Image\Adapter\GD('unit-tests/assets/phalconphp.jpg');
 
 		$image->crop(100, 100, 0.5, 0.5)->save('unit-tests/assets/production/2259.jpg');
